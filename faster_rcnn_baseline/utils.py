@@ -5,6 +5,17 @@ import numpy as np
 import torch
 
 def collate_fn(batch): # batch_size x 3
+    # print(f"batch shape: {batch.shape}")
+    # images = torch.tensor([], dtype=torch.float32)
+    # boxes = torch.tensor([], dtype=torch.float32)
+    # labels = torch.tensor([], dtype=torch.float32)
+    # scales = list()
+    # for image, box, label, scale in zip(*batch):
+    #     images = torch.cat(images, image, dim=0)
+    #     boxes = torch.cat([boxes, box], dim=0)
+    #     labels = torch.cat([labels, label], dim=0)
+    #     scales.append(scale)
+    # images, boxes, labels = images.reshape
     return tuple(zip(*batch))
     
 def loc2bbox(src_bbox, loc):

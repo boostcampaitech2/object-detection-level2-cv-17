@@ -42,7 +42,7 @@ def train(data_dir, model_dir, args):
     dataset = TrainCustom(annotation, data_dir, transforms=True)
     print('load data')
     dataloader = data_.DataLoader(dataset, 
-                                    batch_size=4,     # only batch_size=1 support
+                                    batch_size=12,     # only batch_size=1 support
                                     shuffle=False, 
                                     pin_memory=False,
                                     num_workers=4,
@@ -67,12 +67,13 @@ def train(data_dir, model_dir, args):
     for epoch in range(args.epochs):
         trainer.reset_meters()
         for ii, (img, bbox_, label_, scale) in enumerate(tqdm(dataloader)):
-            img = list(image.cuda().float for image in img)
+            img = list(image.cuda().float() for image in img)
             bbox = list(box.cuda() for box in bbox_)
             label = list(label.cuda() for label in label_)
             scale = list(float(s) for s in scale)
+            # print(scale)
             # img, bbox, label = img.cuda().float(), bbox_.cuda(), label_.cuda() ### 실패
-            trainer.train_step(img, bbox, label, float(scale))
+            trainer.train_step(img, bbox, label, scale)
         
         losses = trainer.get_meter_data()
         print(f"Epoch #{epoch+1} loss: {losses}")
@@ -114,7 +115,7 @@ if __name__ == '__main__':
     parser.add_argument('--patience', type=int, default=10, help='check early stopping point (default: 10)')
 
     # Container environment
-    parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAIN', '../../dataset'))
+    parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/detection/dataset'))
     parser.add_argument('--model_dir', type=str, default=os.environ.get('SM_MODEL_DIR', './checkpoints'))
     parser.add_argument('--train_load_path', type=str, default=os.environ.get('SM_CHECK_DIR', None))
 
