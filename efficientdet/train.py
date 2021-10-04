@@ -55,8 +55,8 @@ def train_fn(num_epochs, train_data_loader, optimizer, model, device, clip=35):
             wandb.log({'loss': loss_hist.value, 'box_loss': loss_hist_box.value, 'cls_loss': loss_hist_cls.value})
 
 
-annotation = '../dataset/train.json'
-data_dir = '../dataset'
+annotation = '/opt/ml/detection/dataset/train.json'
+data_dir = '/opt/ml/detection/dataset'
 train_dataset = CustomDataset(annotation, data_dir)
 
 train_data_loader = DataLoader(
