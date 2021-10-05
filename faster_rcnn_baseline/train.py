@@ -42,11 +42,11 @@ def train(data_dir, model_dir, args):
     dataset = TrainCustom(annotation, data_dir, transforms=True)
     print('load data')
     dataloader = data_.DataLoader(dataset, 
-                                    batch_size=12,     # only batch_size=1 support
+                                    batch_size=1,     # only batch_size=1 support
                                     shuffle=False, 
                                     pin_memory=False,
                                     num_workers=4,
-                                    collate_fn=collate_fn,
+                                    # collate_fn=collate_fn,
                                     )
 
     # faster rcnn 불러오기
@@ -67,12 +67,7 @@ def train(data_dir, model_dir, args):
     for epoch in range(args.epochs):
         trainer.reset_meters()
         for ii, (img, bbox_, label_, scale) in enumerate(tqdm(dataloader)):
-            img = list(image.cuda().float() for image in img)
-            bbox = list(box.cuda() for box in bbox_)
-            label = list(label.cuda() for label in label_)
-            scale = list(float(s) for s in scale)
-            # print(scale)
-            # img, bbox, label = img.cuda().float(), bbox_.cuda(), label_.cuda() ### 실패
+            img, bbox, label = img.cuda().float(), bbox_.cuda(), label_.cuda() ### 실패
             trainer.train_step(img, bbox, label, scale)
         
         losses = trainer.get_meter_data()

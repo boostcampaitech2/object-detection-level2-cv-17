@@ -3,11 +3,11 @@ import torch
 from effdet import get_efficientdet_config, EfficientDet, DetBenchTrain
 from effdet.efficientdet import HeadNet
 
-def get_net(checkpoint_path=None, box_weight=50):
+def get_net(checkpoint_path=None, box_weight=50, img_size=512):
     
     config = get_efficientdet_config('tf_efficientdet_d0')
     config.num_classes = 10
-    config.image_size = (1024,1024)
+    config.image_size = (img_size, img_size)
     
     config.soft_nms = False
     config.max_det_per_image = 25

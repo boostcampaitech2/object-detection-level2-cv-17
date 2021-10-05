@@ -9,9 +9,9 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
 # Albumentation을 이용, augmentation 선언
-def get_train_transform():
+def get_train_transform(img_size):
     return A.Compose([
-        A.Resize(1024, 1024),
+        A.Resize(img_size, img_size),
         A.Flip(p=0.5),
         ToTensorV2(p=1.0)
     ], bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']})
@@ -30,7 +30,7 @@ class CustomDataset(Dataset):
       transforms: data transform (resize, crop, Totensor, etc,,,)
     '''
 
-    def __init__(self, annotation, data_dir, transforms=get_train_transform()):
+    def __init__(self, annotation, data_dir, img_size=512):
         super().__init__()
         self.data_dir = data_dir
         
@@ -41,7 +41,7 @@ class CustomDataset(Dataset):
             "categories": self.coco.dataset["categories"].copy(),
             "annotations": None
         }
-        self.transforms = transforms
+        self.transforms = get_train_transform(img_size)
 
     def __getitem__(self, index: int):
         image_id = self.coco.getImgIds(imgIds=index)
