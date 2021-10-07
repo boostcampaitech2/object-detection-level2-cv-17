@@ -14,7 +14,7 @@ from utils import collate_fn, Averager
 from model import get_net
 from dataset import CustomDataset
 
-import wandb
+# import wandb
 
 def seed_everything(seed):
     torch.manual_seed(seed)
@@ -32,7 +32,7 @@ def get_lr(optimizer):
 
 # train function
 def train_fn(data_dir, model_dir, args):
-    wandb.init(project='efficientdet')
+    # wandb.init(project='efficientdet')
 
     annotation = os.path.join(data_dir,'train.json')
     train_dataset = CustomDataset(annotation, data_dir, args.img_size)
@@ -40,7 +40,7 @@ def train_fn(data_dir, model_dir, args):
     train_data_loader = DataLoader(
         train_dataset,
         batch_size=args.batch_size,
-        shuffle=False,
+        shuffle=True,
         num_workers=4,
         collate_fn=collate_fn
     )
@@ -50,13 +50,18 @@ def train_fn(data_dir, model_dir, args):
     model = get_net(box_weight=args.box_weight, img_size=args.img_size)
     model.to(device)
 
-    opt_module = getattr(import_module("torch.optim"), args.optimizer)  # default: SGD
-    optimizer = opt_module(
-        filter(lambda p: p.requires_grad, model.parameters()),
-        lr=args.lr,
-        weight_decay=5e-4
-    )
-    scheduler = OneCycleLR(optimizer, pct_start=0.1, div_factor=1e5, max_lr=0.002, epochs=args.epochs, steps_per_epoch=len(train_data_loader))
+    if args.optimizer == 'Adam':
+        opt_module = getattr(import_module("torch.optim"), args.optimizer)  # default: SGD
+        optimizer = opt_module(
+            filter(lambda p: p.requires_grad, model.parameters()),
+            lr=args.lr,
+            weight_decay=5e-4
+        )
+    elif args.optimizer == 'SGD':
+        params = [p for p in model.parameters() if p.requires_grad]
+        optimizer = torch.optim.SGD(params, lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
+
+    # scheduler = OneCycleLR(optimizer, pct_start=0.1, div_factor=1e5, max_lr=0.002, epochs=args.epochs, steps_per_epoch=len(train_data_loader))
 
     num_epochs = args.epochs
 
@@ -92,10 +97,11 @@ def train_fn(data_dir, model_dir, args):
                 optimizer.zero_grad()
                 loss.backward()
                 # grad clip
-                # torch.nn.utils.clip_grad_norm_(model.parameters(), clip)
+                torch.nn.utils.clip_grad_norm_(model.parameters(), 35)
                 
                 optimizer.step()
-                scheduler.step()
+                # scheduler.step()
+
         current_lr = get_lr(optimizer)
         print(f"Epoch #{epoch+1} lr: {current_lr} loss: {loss_hist.value} box_loss: {loss_hist_box.value} cls_loss: {loss_hist_cls.value}")
         save_path = f'./{model_dir}/{args.name}/epoch_{epoch+1}.pth'
@@ -103,8 +109,8 @@ def train_fn(data_dir, model_dir, args):
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
         torch.save(model.state_dict(), save_path)
-        if epoch > 0:
-            wandb.log({'loss': loss_hist.value, 'box_loss': loss_hist_box.value, 'cls_loss': loss_hist_cls.value})
+        # if epoch > 0:
+        #     wandb.log({'loss': loss_hist.value, 'box_loss': loss_hist_box.value, 'cls_loss': loss_hist_cls.value})
 
 
 
@@ -116,14 +122,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     # Data and model checkpoints directories
     parser.add_argument('--seed', type=int, default=777, help='random seed (default: 777)')
+    parser.add_argument('--model', type=int, default=0, help='select which model (0~7)')
     parser.add_argument('--epochs', type=int, default=14, help='number of epochs to train (default: 14)')
     parser.add_argument('--batch_size', type=int, default=12, help='input batch size for training (default: 12)')
     parser.add_argument('--img_size', type=int, default=512, help='input image size for training (default: 512)')
     parser.add_argument('--optimizer', type=str, default='Adam', help='optimizer type (default: Adam)')
-    parser.add_argument('--lr', type=float, default=1e-3, help='learning rate (default: 1e-3)')
-    parser.add_argument('--lr_decay', type=float, default=0.1, help='lr decay (default: 0.1)')
+    parser.add_argument('--lr', type=float, default=0.005, help='learning rate (default: 1e-3)')
     parser.add_argument('--box_weight', type=int, default=50, help='box weight (default: 50)')
-    parser.add_argument('--weight_decay', type=float, default=0.0005, help='weight_decay (default: 0.0005)')
+    parser.add_argument('--momentum', type=float, default=0.9, help='momentum for SGD (default: 0.9)')
+    parser.add_argument('--weight_decay', type=float, default=0.0005, help='weight_decay for SGD (default: 0.0005)')
     parser.add_argument('--lr_decay_step', type=int, default=5, help='learning rate scheduler deacy step (default: 5)')
     parser.add_argument('--log_interval', type=int, default=20, help='how many batches to wait before logging training status')
     parser.add_argument('--name', default='exp', help='model save at {SM_MODEL_DIR}/{name}')
