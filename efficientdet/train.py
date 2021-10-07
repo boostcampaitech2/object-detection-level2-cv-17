@@ -62,6 +62,7 @@ def train_fn(data_dir, model_dir, args):
         optimizer = torch.optim.SGD(params, lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
 
     # scheduler = OneCycleLR(optimizer, pct_start=0.1, div_factor=1e5, max_lr=0.002, epochs=args.epochs, steps_per_epoch=len(train_data_loader))
+    scheduler = StepLR(optimizer, args.lr_decay_step, gamma=0.5)
 
     num_epochs = args.epochs
 
@@ -77,30 +78,30 @@ def train_fn(data_dir, model_dir, args):
         
         for images, targets, image_ids in tqdm(train_data_loader):
             
-                images = torch.stack(images) # bs, ch, w, h - 16, 3, 512, 512
-                images = images.to(device).float()
-                boxes = [target['boxes'].to(device).float() for target in targets]
-                labels = [target['labels'].to(device).float() for target in targets]
-                target = {"bbox": boxes, "cls": labels}
+            images = torch.stack(images) # bs, ch, w, h - 16, 3, 512, 512
+            images = images.to(device).float()
+            boxes = [target['boxes'].to(device).float() for target in targets]
+            labels = [target['labels'].to(device).float() for target in targets]
+            target = {"bbox": boxes, "cls": labels}
 
-                # calculate loss
-                loss, cls_loss, box_loss = model(images, target).values()
-                loss_value = loss.detach().item()
-                loss_value_box = box_loss.detach().item()
-                loss_value_cls = cls_loss.detach().item()
-                
-                loss_hist.send(loss_value)
-                loss_hist_box.send(loss_value_box)
-                loss_hist_cls.send(loss_value_cls)
-                
-                # backward
-                optimizer.zero_grad()
-                loss.backward()
-                # grad clip
-                torch.nn.utils.clip_grad_norm_(model.parameters(), 35)
-                
-                optimizer.step()
-                # scheduler.step()
+            # calculate loss
+            loss, cls_loss, box_loss = model(images, target).values()
+            loss_value = loss.detach().item()
+            loss_value_box = box_loss.detach().item()
+            loss_value_cls = cls_loss.detach().item()
+            
+            loss_hist.send(loss_value)
+            loss_hist_box.send(loss_value_box)
+            loss_hist_cls.send(loss_value_cls)
+            
+            # backward
+            optimizer.zero_grad()
+            loss.backward()
+            # grad clip
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 35)
+            
+            optimizer.step()
+        scheduler.step()
 
         current_lr = get_lr(optimizer)
         print(f"Epoch #{epoch+1} lr: {current_lr} loss: {loss_hist.value} box_loss: {loss_hist_box.value} cls_loss: {loss_hist_cls.value}")
@@ -126,12 +127,12 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=14, help='number of epochs to train (default: 14)')
     parser.add_argument('--batch_size', type=int, default=12, help='input batch size for training (default: 12)')
     parser.add_argument('--img_size', type=int, default=512, help='input image size for training (default: 512)')
-    parser.add_argument('--optimizer', type=str, default='Adam', help='optimizer type (default: Adam)')
+    parser.add_argument('--optimizer', type=str, default='SGD', help='optimizer type (default: Adam)')
     parser.add_argument('--lr', type=float, default=0.005, help='learning rate (default: 1e-3)')
     parser.add_argument('--box_weight', type=int, default=50, help='box weight (default: 50)')
     parser.add_argument('--momentum', type=float, default=0.9, help='momentum for SGD (default: 0.9)')
     parser.add_argument('--weight_decay', type=float, default=0.0005, help='weight_decay for SGD (default: 0.0005)')
-    parser.add_argument('--lr_decay_step', type=int, default=5, help='learning rate scheduler deacy step (default: 5)')
+    parser.add_argument('--lr_decay_step', type=int, default=10, help='learning rate scheduler deacy step (default: 5)')
     parser.add_argument('--log_interval', type=int, default=20, help='how many batches to wait before logging training status')
     parser.add_argument('--name', default='exp', help='model save at {SM_MODEL_DIR}/{name}')
     parser.add_argument('--patience', type=int, default=10, help='check early stopping point (default: 10)')
