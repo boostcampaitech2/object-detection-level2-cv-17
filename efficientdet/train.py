@@ -33,7 +33,7 @@ def get_lr(optimizer):
 # train function
 def train_fn(data_dir, model_dir, args):
     # wandb.init(project='efficientdet')
-
+    seed_everything(args.seed)
     annotation = os.path.join(data_dir,'train.json')
     train_dataset = CustomDataset(annotation, data_dir, args.img_size)
 
