@@ -5,12 +5,16 @@ import argparse
 import random
 import numpy as np
 
+from pathlib import Path
+import glob
+import re
+
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from importlib import import_module
 from torch.optim.lr_scheduler import StepLR, OneCycleLR
 
-from utils import collate_fn, Averager
+from utils import collate_fn, Averager, createFolder
 from model import get_net
 from dataset import CustomDataset
 
@@ -30,9 +34,31 @@ def get_lr(optimizer):
     for param_group in optimizer.param_groups:
         return param_group['lr']
 
+def increment_path(path, exist_ok=False):
+    """ Automatically increment path, i.e. runs/exp --> runs/exp0, runs/exp1 etc.
+
+    Args:
+        path (str or pathlib.Path): f"{model_dir}/{args.name}".
+        exist_ok (bool): whether increment path (increment if False).
+    """
+    path = Path(path)
+    if (path.exists() and exist_ok) or (not path.exists()):
+        return str(path)
+    else:
+        dirs = glob.glob(f"{path}*")
+        matches = [re.search(rf"%s(\d+)" % path.stem, d) for d in dirs]
+        i = [int(m.groups()[0]) for m in matches if m]
+        n = max(i) + 1 if i else 2
+        return f"{path}{n}"
+
 # train function
 def train_fn(data_dir, model_dir, args):
     # wandb.init(project='efficientdet')
+    seed_everything(args.seed)
+    
+    createFolder(model_dir)
+    save_dir = increment_path(os.path.join(model_dir, args.name))
+    createFolder(save_dir)
 
     annotation = os.path.join(data_dir,'train.json')
     train_dataset = CustomDataset(annotation, data_dir, args.img_size)
@@ -64,7 +90,7 @@ def train_fn(data_dir, model_dir, args):
     # scheduler = OneCycleLR(optimizer, pct_start=0.1, div_factor=1e5, max_lr=0.002, epochs=args.epochs, steps_per_epoch=len(train_data_loader))
 
     num_epochs = args.epochs
-
+    best_loss = 1000
     loss_hist = Averager()
     loss_hist_box = Averager()
     loss_hist_cls = Averager()
@@ -104,11 +130,14 @@ def train_fn(data_dir, model_dir, args):
 
         current_lr = get_lr(optimizer)
         print(f"Epoch #{epoch+1} lr: {current_lr} loss: {loss_hist.value} box_loss: {loss_hist_box.value} cls_loss: {loss_hist_cls.value}")
-        save_path = f'./{model_dir}/{args.name}/epoch_{epoch+1}.pth'
-        save_dir = os.path.dirname(save_path)
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
+        save_path = f'{save_dir}/epoch_{epoch+1}.pth'
         torch.save(model.state_dict(), save_path)
+
+        if loss_hist.value < best_loss:
+            best_save_path = f'{save_dir}/checkpoints.pth'
+            torch.save(model.state_dict(), best_save_path)
+            best_loss = loss_hist.value
+
         # if epoch > 0:
         #     wandb.log({'loss': loss_hist.value, 'box_loss': loss_hist_box.value, 'cls_loss': loss_hist_cls.value})
 

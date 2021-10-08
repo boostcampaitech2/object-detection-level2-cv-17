@@ -1,4 +1,5 @@
 # 라이브러리 및 모듈 import
+import os
 
 # loss 추적
 class Averager:
@@ -23,3 +24,10 @@ class Averager:
 
 def collate_fn(batch):
     return tuple(zip(*batch))
+
+def createFolder(directory):
+    try:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+    except OSError:
+        print ('Error: Creating directory. ' +  directory)
