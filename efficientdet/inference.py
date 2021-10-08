@@ -26,10 +26,10 @@ def valid_fn(val_data_loader, model, device):
     return outputs
 
 def main(name):
-    annotation = '/opt/ml/detection/dataset/test.json'
+    annotation = '/opt/ml/detection/dataset/train.json'
     data_dir = '/opt/ml/detection/dataset'
     val_dataset = TestDataset(annotation, data_dir, 512)
-    checkpoint_path = '/opt/ml/detection/object-detection-level2-cv-17/efficientdet/checkpoints/d5_adam_dpi_100/epoch_14.pth'
+    checkpoint_path = '/opt/ml/detection/object-detection-level2-cv-17/efficientdet/checkpoints/new_label_b0/epoch_20.pth'
     score_threshold = 0.1
     val_data_loader = DataLoader(
         val_dataset,
@@ -55,7 +55,7 @@ def main(name):
         image_info = coco.loadImgs(coco.getImgIds(imgIds=i))[0]
         for box, score, label in zip(output['boxes'], output['scores'], output['labels']):
             if score > score_threshold:
-                prediction_string += str(int(label)) + ' ' + str(score) + ' ' + str(box[0]*2) + ' ' + str(
+                prediction_string += str(int(label)-1) + ' ' + str(score) + ' ' + str(box[0]*2) + ' ' + str(
                     box[1]*2) + ' ' + str(box[2]*2) + ' ' + str(box[3]*2) + ' '
         prediction_strings.append(prediction_string)
         file_names.append(image_info['file_name'])

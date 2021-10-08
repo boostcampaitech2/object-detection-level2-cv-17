@@ -14,7 +14,7 @@ from utils import collate_fn, Averager
 from model import get_net
 from dataset import CustomDataset
 
-# import wandb
+import wandb
 
 def seed_everything(seed):
     torch.manual_seed(seed)
@@ -32,7 +32,7 @@ def get_lr(optimizer):
 
 # train function
 def train_fn(data_dir, model_dir, args):
-    # wandb.init(project='efficientdet')
+    wandb.init(project='efficientdet')
     seed_everything(args.seed)
     annotation = os.path.join(data_dir,'train.json')
     train_dataset = CustomDataset(annotation, data_dir, args.img_size)
@@ -47,7 +47,8 @@ def train_fn(data_dir, model_dir, args):
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     print(device)
 
-    model = get_net(box_weight=args.box_weight, img_size=args.img_size)
+    # model = get_net(checkpoint_path='/opt/ml/detection/object-detection-level2-cv-17/efficientdet/checkpoints/d5_e50_con/epoch_20.pth', box_weight=args.box_weight, img_size=args.img_size)
+    model = get_net()
     model.to(device)
 
     if args.optimizer == 'Adam':
@@ -83,7 +84,7 @@ def train_fn(data_dir, model_dir, args):
             boxes = [target['boxes'].to(device).float() for target in targets]
             labels = [target['labels'].to(device).float() for target in targets]
             target = {"bbox": boxes, "cls": labels}
-
+            # print(target['cls'])
             # calculate loss
             loss, cls_loss, box_loss = model(images, target).values()
             loss_value = loss.detach().item()
@@ -101,7 +102,7 @@ def train_fn(data_dir, model_dir, args):
             torch.nn.utils.clip_grad_norm_(model.parameters(), 35)
             
             optimizer.step()
-        scheduler.step()
+        scheduler.step()    
 
         current_lr = get_lr(optimizer)
         print(f"Epoch #{epoch+1} lr: {current_lr} loss: {loss_hist.value} box_loss: {loss_hist_box.value} cls_loss: {loss_hist_cls.value}")
@@ -110,8 +111,8 @@ def train_fn(data_dir, model_dir, args):
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
         torch.save(model.state_dict(), save_path)
-        # if epoch > 0:
-        #     wandb.log({'loss': loss_hist.value, 'box_loss': loss_hist_box.value, 'cls_loss': loss_hist_cls.value})
+        if epoch > 0:
+            wandb.log({'loss': loss_hist.value, 'box_loss': loss_hist_box.value, 'cls_loss': loss_hist_cls.value})
 
 
 

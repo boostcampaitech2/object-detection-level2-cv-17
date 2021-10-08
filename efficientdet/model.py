@@ -16,11 +16,12 @@ def get_net(checkpoint_path=None, box_weight=50, img_size=512):
     net = EfficientDet(config, pretrained_backbone=True)
     net.class_net = HeadNet(config, num_outputs=config.num_classes)
     
+    net = DetBenchTrain(net)
     if checkpoint_path:
         checkpoint = torch.load(checkpoint_path)
-        net.load_state_dict(checkpoint['model_state_dict'])
+        net.load_state_dict(checkpoint)
         
-    return DetBenchTrain(net)
+    return net
 
 # Effdet config를 통해 모델 불러오기 + ckpt load
 def load_net(checkpoint_path, device):
