@@ -1,4 +1,6 @@
 # 라이브러리 및 모듈 import
+from albumentations.augmentations.transforms import Normalize
+from numpy.lib.type_check import imag
 from pycocotools.coco import COCO
 import numpy as np
 import cv2
@@ -21,8 +23,13 @@ def get_valid_transform(img_size):
     return A.Compose([
         A.Resize(img_size, img_size),
         ToTensorV2(p=1.0)
-    ])
+    ], bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']})
 
+def get_test_transform(img_size):
+    return A.Compose([
+        A.Resize(img_size, img_size),
+        ToTensorV2(p=1.0)
+    ])
 # CustomDataset class 선언
 
 class CustomDataset(Dataset):
@@ -31,10 +38,10 @@ class CustomDataset(Dataset):
       transforms: data transform (resize, crop, Totensor, etc,,,)
     '''
 
-    def __init__(self, annotation, data_dir, img_size=512):
+    def __init__(self, annotation, data_dir, group, img_size=512):
         super().__init__()
         self.data_dir = data_dir
-        
+        self.mask = group[0]
         # coco annotation 불러오기 (by. coco API)
         self.coco = COCO(annotation)
         self.predictions = {
@@ -42,9 +49,13 @@ class CustomDataset(Dataset):
             "categories": self.coco.dataset["categories"].copy(),
             "annotations": None
         }
-        self.transforms = get_train_transform(img_size)
+        if group[1] == 'train':
+            self.transforms = get_train_transform(img_size)
+        else:
+            self.transforms = get_valid_transform(img_size)
 
     def __getitem__(self, index: int):
+        index = self.mask[index]
         image_id = self.coco.getImgIds(imgIds=index)
 
         image_info = self.coco.loadImgs(image_id)[0]
@@ -94,7 +105,8 @@ class CustomDataset(Dataset):
         return image, target, image_id
     
     def __len__(self) -> int:
-        return len(self.coco.getImgIds())
+        return len(self.mask)
+        # return len(self.coco.getImgIds())
 
 # TestDataset class 선언
 
@@ -114,7 +126,7 @@ class TestDataset(Dataset):
             "categories": self.coco.dataset["categories"].copy(),
             "annotations": None
         }
-        self.transforms = get_valid_transform(img_size)
+        self.transforms = get_test_transform(img_size)
 
     def __getitem__(self, index: int):
         image_id = self.coco.getImgIds(imgIds=index)
