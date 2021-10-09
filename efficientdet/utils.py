@@ -5,8 +5,12 @@ import pandas as pd
 from pycocotools.coco import COCO
 from collections import defaultdict
 
+from pathlib import Path
+import glob
+import re
+
 # stratified Group K-fold cross validation
-def stratified_split(annotation, index, group):
+def stratified_split(annotation, index, IsValid):
     coco = COCO(annotation)
 
     df = pd.DataFrame(coco.dataset['annotations'])
@@ -46,13 +50,12 @@ def stratified_split(annotation, index, group):
 
     all_groups = set(groups)
     train_groups = all_groups - groups_per_fold[index]
-    valid_groups = groups_per_fold[index]
+    valid_groups = groups_per_fold[index] 
 
-    if group == 'train':
-        return list(train_groups), 'train'
-    elif group == 'valid':
+    if IsValid:
         return list(valid_groups), 'valid'
-
+    else:
+        return list(train_groups), 'train'
 
 
 # loss 추적
@@ -85,3 +88,26 @@ def createFolder(directory):
             os.makedirs(directory)
     except OSError:
         print ('Error: Creating directory. ' +  directory)
+        
+
+
+def get_lr(optimizer):
+    for param_group in optimizer.param_groups:
+        return param_group['lr']
+
+def increment_path(path, exist_ok=False):
+    """ Automatically increment path, i.e. runs/exp --> runs/exp0, runs/exp1 etc.
+
+    Args:
+        path (str or pathlib.Path): f"{model_dir}/{args.name}".
+        exist_ok (bool): whether increment path (increment if False).
+    """
+    path = Path(path)
+    if (path.exists() and exist_ok) or (not path.exists()):
+        return str(path)
+    else:
+        dirs = glob.glob(f"{path}*")
+        matches = [re.search(rf"%s(\d+)" % path.stem, d) for d in dirs]
+        i = [int(m.groups()[0]) for m in matches if m]
+        n = max(i) + 1 if i else 2
+        return f"{path}{n}"
