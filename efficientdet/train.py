@@ -57,14 +57,15 @@ def train_fn(data_dir, model_dir, args):
         wandb.init(project='efficientdet')
     seed_everything(args.seed)
     
+    k = random.randint(0,4) # k-fold 번호 (실행할 때마다 랜덤)
+
     createFolder(model_dir)
-    save_dir = increment_path(os.path.join(model_dir, args.name))
+    save_dir = increment_path(os.path.join(model_dir, f'{args.name}_valnum{k}')) # 실행할 때 val 번호(k)를 알아야 나중에 metric 할 수 있다.
     createFolder(save_dir)
 
     annotation = os.path.join(data_dir,'train.json')
     
-    k = random.randint(0,4)
-    train_group = stratified_split(annotation, k, 'train')
+    train_group = stratified_split(annotation, k, 'train')  # train, val set stratified 하게 나누고 train set 불러오기
     train_dataset = CustomDataset(annotation, data_dir, train_group, args.img_size)
 
     train_data_loader = DataLoader(
@@ -75,7 +76,7 @@ def train_fn(data_dir, model_dir, args):
         collate_fn=collate_fn
     )
     
-    valid_group = stratified_split(annotation, k, 'valid')
+    valid_group = stratified_split(annotation, k, 'valid')  # valid set 불러오기
     valid_dataset = CustomDataset(annotation, data_dir, valid_group, args.img_size)
 
     valid_data_loader = DataLoader(
