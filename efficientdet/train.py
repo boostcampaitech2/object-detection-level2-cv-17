@@ -5,20 +5,18 @@ import argparse
 import random
 import numpy as np
 
-from pathlib import Path
-import glob
-import re
 
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from importlib import import_module
 from torch.optim.lr_scheduler import StepLR, OneCycleLR, ReduceLROnPlateau
 
-from utils import collate_fn, Averager, createFolder, stratified_split
+from utils import *
 from model import get_net
 from dataset import CustomDataset
 
 import wandb
+
 
 def seed_everything(seed):
     torch.manual_seed(seed)
@@ -27,29 +25,7 @@ def seed_everything(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
     np.random.seed(seed)
-    random.seed(seed)
-
-
-def get_lr(optimizer):
-    for param_group in optimizer.param_groups:
-        return param_group['lr']
-
-def increment_path(path, exist_ok=False):
-    """ Automatically increment path, i.e. runs/exp --> runs/exp0, runs/exp1 etc.
-
-    Args:
-        path (str or pathlib.Path): f"{model_dir}/{args.name}".
-        exist_ok (bool): whether increment path (increment if False).
-    """
-    path = Path(path)
-    if (path.exists() and exist_ok) or (not path.exists()):
-        return str(path)
-    else:
-        dirs = glob.glob(f"{path}*")
-        matches = [re.search(rf"%s(\d+)" % path.stem, d) for d in dirs]
-        i = [int(m.groups()[0]) for m in matches if m]
-        n = max(i) + 1 if i else 2
-        return f"{path}{n}"
+    # random.seed(seed)
 
 # train function
 def train_fn(data_dir, model_dir, args):
@@ -60,12 +36,12 @@ def train_fn(data_dir, model_dir, args):
     k = random.randint(0,4) # k-fold 번호 (실행할 때마다 랜덤)
 
     createFolder(model_dir)
-    save_dir = increment_path(os.path.join(model_dir, f'{args.name}_valnum{k}')) # 실행할 때 val 번호(k)를 알아야 나중에 metric 할 수 있다.
+    save_dir = increment_path(os.path.join(model_dir, f'k{k}_{args.name}')) # 실행할 때 val 번호(k)를 알아야 나중에 metric 할 수 있다.
     createFolder(save_dir)
 
     annotation = os.path.join(data_dir,'train.json')
     
-    train_group = stratified_split(annotation, k, 'train')  # train, val set stratified 하게 나누고 train set 불러오기
+    train_group = stratified_split(annotation, k, False)  # train, val set stratified 하게 나누고 train set 불러오기
     train_dataset = CustomDataset(annotation, data_dir, train_group, args.img_size)
 
     train_data_loader = DataLoader(
@@ -76,7 +52,7 @@ def train_fn(data_dir, model_dir, args):
         collate_fn=collate_fn
     )
     
-    valid_group = stratified_split(annotation, k, 'valid')  # valid set 불러오기
+    valid_group = stratified_split(annotation, k, True)  # valid set 불러오기
     valid_dataset = CustomDataset(annotation, data_dir, valid_group, args.img_size)
 
     valid_data_loader = DataLoader(
@@ -189,8 +165,8 @@ def train_fn(data_dir, model_dir, args):
             best_loss = loss_hist_valid.value
 
         if epoch > 0 and args.wandb:
-            wandb.log({'loss': loss_hist.value, 'box_loss': loss_hist_box.value, 'cls_loss': loss_hist_cls.value})
-            wandb.log({'valid_loss': loss_hist_valid.value, 'valid_box_loss': loss_hist_box_valid.value, 'valid_cls_loss': loss_hist_cls_valid.value})
+            wandb.log({'loss': loss_hist.value, 'box_loss': loss_hist_box.value, 'cls_loss': loss_hist_cls.value,
+            'valid_loss': loss_hist_valid.value, 'valid_box_loss': loss_hist_box_valid.value, 'valid_cls_loss': loss_hist_cls_valid.value})
 
 
 
@@ -205,7 +181,7 @@ if __name__ == '__main__':
     parser.add_argument('--wandb', type=bool, default=True, help='use wandb or not')
     parser.add_argument('--model', type=int, default=0, help='select which model (0~7)')
     parser.add_argument('--epochs', type=int, default=14, help='number of epochs to train (default: 14)')
-    parser.add_argument('--batch_size', type=int, default=32, help='input batch size for training (default: 12)')
+    parser.add_argument('--batch_size', type=int, default=12, help='input batch size for training (default: 12)')
     parser.add_argument('--img_size', type=int, default=512, help='input image size for training (default: 512)')
     parser.add_argument('--optimizer', type=str, default='SGD', help='optimizer type (default: Adam)')
     parser.add_argument('--lr', type=float, default=0.005, help='learning rate (default: 1e-3)')
