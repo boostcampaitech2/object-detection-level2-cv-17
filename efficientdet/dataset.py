@@ -116,9 +116,10 @@ class TestDataset(Dataset):
       transforms: data transform (resize, crop, Totensor, etc,,,)
     '''
 
-    def __init__(self, annotation, data_dir, img_size=512):
+    def __init__(self, annotation, data_dir, group, img_size=512):
         super().__init__()
         self.data_dir = data_dir
+        self.mask = group[0]
         # coco annotation 불러오기 (coco API)
         self.coco = COCO(annotation)
         self.predictions = {
@@ -129,6 +130,7 @@ class TestDataset(Dataset):
         self.transforms = get_test_transform(img_size)
 
     def __getitem__(self, index: int):
+        index = self.mask[index]
         image_id = self.coco.getImgIds(imgIds=index)
 
         image_info = self.coco.loadImgs(image_id)[0]
@@ -146,4 +148,4 @@ class TestDataset(Dataset):
         return sample['image'], image_id
     
     def __len__(self) -> int:
-        return len(self.coco.getImgIds())
+        return len(self.mask)

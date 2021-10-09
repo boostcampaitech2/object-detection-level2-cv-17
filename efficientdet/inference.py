@@ -6,9 +6,9 @@ from torch.utils.data import DataLoader
 import pandas as pd
 from tqdm import tqdm
 
-from dataset import TestDataset
+from dataset import TestDataset, CustomDataset
 from model import load_net
-from utils import collate_fn
+from utils import collate_fn, stratified_split
 
 
 # valid function
@@ -28,11 +28,14 @@ def valid_fn(val_data_loader, model, device):
 def main(name):
     annotation = '/opt/ml/detection/dataset/train.json'
     data_dir = '/opt/ml/detection/dataset'
-    val_dataset = TestDataset(annotation, data_dir, 512)
-    checkpoint_path = '/opt/ml/detection/object-detection-level2-cv-17/efficientdet/checkpoints/new_label_b0/epoch_20.pth'
+    group = stratified_split(annotation, 1, True)
+    mask = group[0]
+
+    val_dataset = TestDataset(annotation, data_dir, group, args.img_size)
+    checkpoint_path = '/opt/ml/detection/object-detection-level2-cv-17/efficientdet/checkpoints/validation_k1/epoch_49.pth'
     score_threshold = 0.1
     val_data_loader = DataLoader(
-        val_dataset,
+        val_dataset,  
         batch_size=4,
         shuffle=False,
         num_workers=4,
@@ -42,7 +45,7 @@ def main(name):
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     print(device)
 
-    model = load_net(checkpoint_path, device)
+    model = load_net(checkpoint_path, device, args.img_size)
     
     outputs = valid_fn(val_data_loader, model, device)
     
@@ -52,7 +55,7 @@ def main(name):
     
     for i, output in enumerate(outputs):
         prediction_string = ''
-        image_info = coco.loadImgs(coco.getImgIds(imgIds=i))[0]
+        image_info = coco.loadImgs(coco.getImgIds(imgIds=mask[i]))[0]
         for box, score, label in zip(output['boxes'], output['scores'], output['labels']):
             if score > score_threshold:
                 prediction_string += str(int(label)-1) + ' ' + str(score) + ' ' + str(box[0]*2) + ' ' + str(
@@ -63,13 +66,14 @@ def main(name):
     submission = pd.DataFrame()
     submission['PredictionString'] = prediction_strings
     submission['image_id'] = file_names
-    submission.to_csv(f'submission_{name}.csv', index=None)
+    submission.to_csv(f'csv/submission_{name}.csv', index=None)
     print(submission.head())
 
 if __name__ == '__main__':
     
     parser = argparse.ArgumentParser()
     parser.add_argument('--name', type=str, default='exp', help='enter csv name (default: exp)')
+    parser.add_argument('--img_size', type=int, default=512, help='input image size for training (default: 512)')
     args = parser.parse_args()
     print(args)
     main(args.name)
