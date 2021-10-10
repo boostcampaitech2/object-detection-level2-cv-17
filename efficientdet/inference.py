@@ -30,7 +30,7 @@ def main(name):
     data_dir = '/opt/ml/detection/dataset'
     
     coco = COCO(annotation)
-    group = stratified_split(coco, 1, True)
+    group = stratified_split(coco, args.k_num, True)
     mask = group[0]
 
     val_dataset = TestDataset(coco, data_dir, group, args.img_size)
@@ -74,6 +74,7 @@ if __name__ == '__main__':
     
     parser = argparse.ArgumentParser()
     parser.add_argument('--name', type=str, default='exp', help='enter csv name (default: exp)')
+    parser.add_argument('--k_num', type=int, default=0, help='input fold number')
     parser.add_argument('--img_size', type=int, default=512, help='input image size for training (default: 512)')
     args = parser.parse_args()
     print(args)
