@@ -15,6 +15,7 @@ def get_net(checkpoint_path=None, box_weight=50, img_size=512):
     # config.label_smoothing = 0.2
     # config.lagacy_focal = True
     # config.jit_loss = True
+    print(config)
 
     net = EfficientDet(config, pretrained_backbone=True)
     net.class_net = HeadNet(config, num_outputs=config.num_classes)
