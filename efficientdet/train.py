@@ -88,7 +88,8 @@ def train_fn(data_dir, model_dir, args):
     # scheduler = OneCycleLR(optimizer, pct_start=0.1, div_factor=1e5, max_lr=0.002, epochs=args.epochs, steps_per_epoch=len(train_data_loader))
     # scheduler = StepLR(optimizer, args.lr_decay_step, gamma=0.5)
     # scheduler = ReduceLROnPlateau(optimizer=optimizer, mode='min', factor=0.5, patience=args.patience)
-    scheduler = CosineAnnealingWarmUpRestarts(optimizer, 10, 0.16, 1)
+    scheduler = CosineAnnealingWarmUpRestarts(optimizer, 10, 1, 0.16, 1)
+    print('scheduler : CosineAnnealingWarmUpRestarts')
 
     num_epochs = args.epochs
     best_loss = 1000
