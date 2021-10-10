@@ -6,6 +6,7 @@ import random
 import numpy as np
 
 
+from pycocotools.coco import COCO
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from importlib import import_module
@@ -30,8 +31,9 @@ def seed_everything(seed):
 # train function
 def train_fn(data_dir, model_dir, args):
     if args.wandb:
-        wandb.init(project='efficientdet')
+        wandb.init(project='efficientdet', name=args.name)
     seed_everything(args.seed)
+    print(args)
     
     k = random.randint(0,4) # k-fold 번호 (실행할 때마다 랜덤)
 
@@ -40,9 +42,10 @@ def train_fn(data_dir, model_dir, args):
     createFolder(save_dir)
 
     annotation = os.path.join(data_dir,'train.json')
-    
-    train_group = stratified_split(annotation, k, False)  # train, val set stratified 하게 나누고 train set 불러오기
-    train_dataset = CustomDataset(annotation, data_dir, train_group, args.img_size)
+    coco = COCO(annotation)
+
+    train_group = stratified_split(coco, k, False)  # train, val set stratified 하게 나누고 train set 불러오기
+    train_dataset = CustomDataset(coco, data_dir, train_group, args.img_size)
 
     train_data_loader = DataLoader(
         train_dataset,
@@ -52,8 +55,8 @@ def train_fn(data_dir, model_dir, args):
         collate_fn=collate_fn
     )
     
-    valid_group = stratified_split(annotation, k, True)  # valid set 불러오기
-    valid_dataset = CustomDataset(annotation, data_dir, valid_group, args.img_size)
+    valid_group = stratified_split(coco, k, True)  # valid set 불러오기
+    valid_dataset = CustomDataset(coco, data_dir, valid_group, args.img_size)
 
     valid_data_loader = DataLoader(
         valid_dataset,
@@ -156,7 +159,7 @@ def train_fn(data_dir, model_dir, args):
                 loss_hist_cls_valid.send(loss_value_cls)
                 
         print(f"Validation | lr: {current_lr} loss: {loss_hist_valid.value} box_loss: {loss_hist_box_valid.value} cls_loss: {loss_hist_cls_valid.value}")
-        save_path = f'{save_dir}/epoch_{epoch+1}.pth'
+        save_path = f'{save_dir}/last.pth'
         torch.save(model.state_dict(), save_path)
 
         if loss_hist_valid.value < best_loss:
@@ -199,7 +202,6 @@ if __name__ == '__main__':
     
 
     args = parser.parse_args()
-    print(args)
 
     data_dir = args.data_dir
     model_dir = args.model_dir

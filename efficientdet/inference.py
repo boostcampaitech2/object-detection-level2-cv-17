@@ -28,10 +28,12 @@ def valid_fn(val_data_loader, model, device):
 def main(name):
     annotation = '/opt/ml/detection/dataset/train.json'
     data_dir = '/opt/ml/detection/dataset'
-    group = stratified_split(annotation, 1, True)
+    
+    coco = COCO(annotation)
+    group = stratified_split(coco, 1, True)
     mask = group[0]
 
-    val_dataset = TestDataset(annotation, data_dir, group, args.img_size)
+    val_dataset = TestDataset(coco, data_dir, group, args.img_size)
     checkpoint_path = '/opt/ml/detection/object-detection-level2-cv-17/efficientdet/checkpoints/validation_k1/epoch_49.pth'
     score_threshold = 0.1
     val_data_loader = DataLoader(
@@ -51,7 +53,6 @@ def main(name):
     
     prediction_strings = []
     file_names = []
-    coco = COCO(annotation)
     
     for i, output in enumerate(outputs):
         prediction_string = ''

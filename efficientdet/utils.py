@@ -2,7 +2,6 @@
 import os
 import numpy as np
 import pandas as pd
-from pycocotools.coco import COCO
 from collections import defaultdict
 
 from pathlib import Path
@@ -10,8 +9,8 @@ import glob
 import re
 
 # stratified Group K-fold cross validation
-def stratified_split(annotation, index, IsValid):
-    coco = COCO(annotation)
+def stratified_split(coco, index, IsValid):
+    # coco = COCO(annotation)
 
     df = pd.DataFrame(coco.dataset['annotations'])
     X = df['id']              # 객체 번호 [0~23143]

@@ -1,7 +1,6 @@
 # 라이브러리 및 모듈 import
 from albumentations.augmentations.transforms import Normalize
 from numpy.lib.type_check import imag
-from pycocotools.coco import COCO
 import numpy as np
 import cv2
 import os
@@ -38,12 +37,12 @@ class CustomDataset(Dataset):
       transforms: data transform (resize, crop, Totensor, etc,,,)
     '''
 
-    def __init__(self, annotation, data_dir, group, img_size=512):
+    def __init__(self, coco, data_dir, group, img_size=512):
         super().__init__()
         self.data_dir = data_dir
         self.mask = group[0]
         # coco annotation 불러오기 (by. coco API)
-        self.coco = COCO(annotation)
+        self.coco = coco
         self.predictions = {
             "images": self.coco.dataset["images"].copy(),
             "categories": self.coco.dataset["categories"].copy(),
@@ -116,12 +115,12 @@ class TestDataset(Dataset):
       transforms: data transform (resize, crop, Totensor, etc,,,)
     '''
 
-    def __init__(self, annotation, data_dir, group, img_size=512):
+    def __init__(self, coco, data_dir, group, img_size=512):
         super().__init__()
         self.data_dir = data_dir
         self.mask = group[0]
         # coco annotation 불러오기 (coco API)
-        self.coco = COCO(annotation)
+        self.coco = coco
         self.predictions = {
             "images": self.coco.dataset["images"].copy(),
             "categories": self.coco.dataset["categories"].copy(),
