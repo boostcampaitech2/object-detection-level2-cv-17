@@ -10,10 +10,11 @@ from pycocotools.coco import COCO
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from importlib import import_module
-from torch.optim.lr_scheduler import StepLR, OneCycleLR, ReduceLROnPlateau
+from torch.optim.lr_scheduler import StepLR, OneCycleLR, ReduceLROnPlateau, CosineAnnealingWarmRestarts
 
 from utils import *
 from model import get_net
+from scheduler import CosineAnnealingWarmUpRestarts
 from dataset import CustomDataset
 
 import wandb
@@ -85,8 +86,9 @@ def train_fn(data_dir, model_dir, args):
         optimizer = torch.optim.SGD(params, lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
 
     # scheduler = OneCycleLR(optimizer, pct_start=0.1, div_factor=1e5, max_lr=0.002, epochs=args.epochs, steps_per_epoch=len(train_data_loader))
-    scheduler = StepLR(optimizer, args.lr_decay_step, gamma=0.5)
+    # scheduler = StepLR(optimizer, args.lr_decay_step, gamma=0.5)
     # scheduler = ReduceLROnPlateau(optimizer=optimizer, mode='min', factor=0.5, patience=args.patience)
+    scheduler = CosineAnnealingWarmUpRestarts(optimizer, 10, 0.16, 1)
 
     num_epochs = args.epochs
     best_loss = 1000
@@ -127,7 +129,7 @@ def train_fn(data_dir, model_dir, args):
             optimizer.zero_grad()
             loss.backward()
             # grad clip
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 35)
+            # torch.nn.utils.clip_grad_norm_(model.parameters(), 35)
             
             optimizer.step()
 
