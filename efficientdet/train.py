@@ -30,7 +30,7 @@ def seed_everything(seed):
 
 # train function
 def train_fn(data_dir, model_dir, args):
-    if args.wandb:
+    if args.wandb=='t':
         wandb.init(project='efficientdet', name=args.name)
     seed_everything(args.seed)
     print(args)
@@ -38,7 +38,7 @@ def train_fn(data_dir, model_dir, args):
     k = random.randint(0,4) # k-fold 번호 (실행할 때마다 랜덤)
 
     createFolder(model_dir)
-    save_dir = increment_path(os.path.join(model_dir, f'k{k}_{args.name}')) # 실행할 때 val 번호(k)를 알아야 나중에 metric 할 수 있다.
+    save_dir = os.path.join(model_dir, f'k{k}_{args.name}') # 실행할 때 val 번호(k)를 알아야 나중에 metric 할 수 있다.
     createFolder(save_dir)
 
     annotation = os.path.join(data_dir,'train.json')
@@ -167,7 +167,7 @@ def train_fn(data_dir, model_dir, args):
             torch.save(model.state_dict(), best_save_path)
             best_loss = loss_hist_valid.value
 
-        if epoch > 0 and args.wandb:
+        if epoch > 0 and args.wandb=='t':
             wandb.log({'loss': loss_hist.value, 'box_loss': loss_hist_box.value, 'cls_loss': loss_hist_cls.value,
             'valid_loss': loss_hist_valid.value, 'valid_box_loss': loss_hist_box_valid.value, 'valid_cls_loss': loss_hist_cls_valid.value})
 
@@ -181,7 +181,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     # Data and model checkpoints directories
     parser.add_argument('--seed', type=int, default=777, help='random seed (default: 777)')
-    parser.add_argument('--wandb', type=bool, default=True, help='use wandb or not')
+    parser.add_argument('--wandb', type=str, default='t', help='use wandb or not')
     parser.add_argument('--model', type=int, default=0, help='select which model (0~7)')
     parser.add_argument('--epochs', type=int, default=14, help='number of epochs to train (default: 14)')
     parser.add_argument('--batch_size', type=int, default=12, help='input batch size for training (default: 12)')
