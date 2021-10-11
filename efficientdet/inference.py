@@ -34,20 +34,20 @@ def main(name):
     mask = group[0]
 
     val_dataset = TestDataset(coco, data_dir, group, args.img_size)
-    checkpoint_path = '/opt/ml/detection/object-detection-level2-cv-17/efficientdet/checkpoints/validation_k1/epoch_49.pth'
+    checkpoint_path = '/opt/ml/detection/object-detection-level2-cv-17/efficientdet/checkpoints/k0_smoothing_b4/best.pth'
     score_threshold = 0.1
     val_data_loader = DataLoader(
         val_dataset,  
-        batch_size=4,
+        batch_size=2,
         shuffle=False,
-        num_workers=4,
+        num_workers=1,
         collate_fn=collate_fn
     )
     
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     print(device)
 
-    model = load_net(checkpoint_path, device, args.img_size)
+    model = load_net(checkpoint_path, device, args.img_size, args.model)
     
     outputs = valid_fn(val_data_loader, model, device)
     
@@ -75,7 +75,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--name', type=str, default='exp', help='enter csv name (default: exp)')
     parser.add_argument('--k_num', type=int, default=0, help='input fold number')
-    parser.add_argument('--img_size', type=int, default=512, help='input image size for training (default: 512)')
+    parser.add_argument('--img_size', type=int, default=512, help='input image size for inference (default: 512)')
+    parser.add_argument('--model', type=int, default=4, help='model ver [0~7] (default: 5)')
+    parser.add_argument('--batch_size', type=int, default=4, help='input batch size for inference (default: 4)')
     args = parser.parse_args()
     print(args)
     main(args.name)
