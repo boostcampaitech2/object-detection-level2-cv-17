@@ -1,6 +1,7 @@
 # 라이브러리 및 모듈 import
 import torch
 import os
+import math
 import argparse
 import random
 import numpy as np
@@ -10,7 +11,7 @@ from pycocotools.coco import COCO
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from importlib import import_module
-from torch.optim.lr_scheduler import StepLR, OneCycleLR, ReduceLROnPlateau, CosineAnnealingWarmRestarts
+from torch.optim.lr_scheduler import StepLR, OneCycleLR, ReduceLROnPlateau, CosineAnnealingLR, LambdaLR
 
 from utils import *
 from model import get_net
@@ -71,7 +72,7 @@ def train_fn(data_dir, model_dir, args):
     print(device)
 
     # model = get_net(checkpoint_path='/opt/ml/detection/object-detection-level2-cv-17/efficientdet/checkpoints/d5_e50_con/epoch_20.pth', box_weight=args.box_weight, img_size=args.img_size)
-    model = get_net(img_size=args.img_size)
+    model = get_net(img_size=args.img_size, version=args.version)
     model.to(device)
 
     if args.optimizer == 'Adam':
@@ -88,8 +89,12 @@ def train_fn(data_dir, model_dir, args):
     # scheduler = OneCycleLR(optimizer, pct_start=0.1, div_factor=1e5, max_lr=0.002, epochs=args.epochs, steps_per_epoch=len(train_data_loader))
     # scheduler = StepLR(optimizer, args.lr_decay_step, gamma=0.5)
     # scheduler = ReduceLROnPlateau(optimizer=optimizer, mode='min', factor=0.5, patience=args.patience)
-    scheduler = CosineAnnealingWarmUpRestarts(optimizer, 10, 1, 0.16, 1)
-    print('scheduler : CosineAnnealingWarmUpRestarts')
+    iter = math.ceil(len(train_dataset)/args.batch_size)
+    print('iter : ', iter)
+    scheduler_lamb = LambdaLR(optimizer=optimizer, lr_lambda=lambda step: step/iter)
+    scheduler = CosineAnnealingLR(optimizer=optimizer, T_max=50, eta_min=0.001)
+
+    print(f'K : {k}, scheduler : {scheduler}')
 
     num_epochs = args.epochs
     best_loss = 1000
@@ -133,17 +138,20 @@ def train_fn(data_dir, model_dir, args):
             # torch.nn.utils.clip_grad_norm_(model.parameters(), 35)
             
             optimizer.step()
-
+            if epoch==0:
+                scheduler_lamb.step()
+            # print(f'current_lr : {get_lr(optimizer)}, loss : {loss_value}')
+                
+        current_lr = get_lr(optimizer)
         scheduler.step()    
 
-        current_lr = get_lr(optimizer)
         print(f"Epoch #{epoch+1} lr: {current_lr} loss: {loss_hist.value} box_loss: {loss_hist_box.value} cls_loss: {loss_hist_cls.value}")
         
         # val loop
         with torch.no_grad():
             print("Calculating validation results...")
             model.eval()
-            for images, targets, image_ids in tqdm(valid_data_loader):
+            for images, targets, image_ids in valid_data_loader:
                 
                 images = torch.stack(images) # bs, ch, w, h - 16, 3, 512, 512
                 images = images.to(device).float()
@@ -172,7 +180,8 @@ def train_fn(data_dir, model_dir, args):
 
         if epoch > 0 and args.wandb=='t':
             wandb.log({'loss': loss_hist.value, 'box_loss': loss_hist_box.value, 'cls_loss': loss_hist_cls.value,
-            'valid_loss': loss_hist_valid.value, 'valid_box_loss': loss_hist_box_valid.value, 'valid_cls_loss': loss_hist_cls_valid.value})
+            'valid_loss': loss_hist_valid.value, 'valid_box_loss': loss_hist_box_valid.value, 'valid_cls_loss': loss_hist_cls_valid.value,
+            'current_lr': current_lr})
 
 
 
@@ -198,6 +207,7 @@ if __name__ == '__main__':
     parser.add_argument('--log_interval', type=int, default=20, help='how many batches to wait before logging training status')
     parser.add_argument('--name', default='exp', help='model save at {SM_MODEL_DIR}/{name}')
     parser.add_argument('--patience', type=int, default=5, help='check early stopping point (default: 5)')
+    parser.add_argument('--version', type=int, default=4, help='model ver [0~7] (default: 4)')
 
     # Container environment
     parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/detection/dataset'))
