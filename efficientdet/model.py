@@ -3,9 +3,9 @@ import torch
 from effdet import get_efficientdet_config, EfficientDet, DetBenchTrain, DetBenchPredict
 from effdet.efficientdet import HeadNet
 
-def get_net(checkpoint_path=None, box_weight=50, img_size=512):
+def get_net(checkpoint_path=None, box_weight=50, img_size=512, version=4):
     
-    config = get_efficientdet_config('tf_efficientdet_d4')
+    config = get_efficientdet_config(f'tf_efficientdet_d{version}')
     config.num_classes = 10
     config.image_size = (img_size, img_size)
     
@@ -28,8 +28,8 @@ def get_net(checkpoint_path=None, box_weight=50, img_size=512):
     return net
 
 # Effdet config를 통해 모델 불러오기 + ckpt load
-def load_net(checkpoint_path, device, img_size):
-    config = get_efficientdet_config('tf_efficientdet_d5')
+def load_net(checkpoint_path, device, img_size, version):
+    config = get_efficientdet_config(f'tf_efficientdet_d{version}')
     config.num_classes = 10
     config.image_size = (img_size, img_size)
     
