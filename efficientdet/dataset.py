@@ -1,12 +1,15 @@
 # 라이브러리 및 모듈 import
 from albumentations.augmentations.transforms import Normalize
 from numpy.lib.type_check import imag
+
 import numpy as np
 import cv2
 import os
 import torch
-from torch.utils.data import  Dataset
 import albumentations as A
+
+from pycocotools.coco import COCO
+from torch.utils.data import  Dataset
 from albumentations.pytorch import ToTensorV2
 
 # Albumentation을 이용, augmentation 선언
@@ -115,12 +118,13 @@ class TestDataset(Dataset):
       transforms: data transform (resize, crop, Totensor, etc,,,)
     '''
 
-    def __init__(self, coco, data_dir, group, img_size=512):
+    def __init__(self, coco, data_dir, group, img_size=512, mode='valid'):
         super().__init__()
         self.data_dir = data_dir
-        self.mask = group[0]
         # coco annotation 불러오기 (coco API)
         self.coco = coco
+        self.mode = mode
+        self.mask = group[0]
         self.predictions = {
             "images": self.coco.dataset["images"].copy(),
             "categories": self.coco.dataset["categories"].copy(),
@@ -129,7 +133,8 @@ class TestDataset(Dataset):
         self.transforms = get_test_transform(img_size)
 
     def __getitem__(self, index: int):
-        index = self.mask[index]
+        if self.mode=='valid':
+            index = self.mask[index]
         image_id = self.coco.getImgIds(imgIds=index)
 
         image_info = self.coco.loadImgs(image_id)[0]
@@ -147,4 +152,7 @@ class TestDataset(Dataset):
         return sample['image'], image_id
     
     def __len__(self) -> int:
-        return len(self.mask)
+        if self.mode=='valid':
+            return len(self.mask)
+        else:
+            return len(self.coco.getImgIds())

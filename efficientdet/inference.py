@@ -2,6 +2,7 @@
 from pycocotools.coco import COCO
 import argparse
 import torch
+import os
 from torch.utils.data import DataLoader
 import pandas as pd
 from tqdm import tqdm
@@ -26,15 +27,15 @@ def valid_fn(val_data_loader, model, device):
     return outputs
 
 def main(name):
-    annotation = '/opt/ml/detection/dataset/train.json'
+    annotation = '/opt/ml/detection/dataset/test.json'
     data_dir = '/opt/ml/detection/dataset'
     
     coco = COCO(annotation)
-    group = stratified_split(coco, args.k_num, True)
+    group = stratified_split(coco, args.k_num, True) if args.mode=='valid' else (0, 0)
     mask = group[0]
 
     val_dataset = TestDataset(coco, data_dir, group, args.img_size)
-    checkpoint_path = '/opt/ml/detection/object-detection-level2-cv-17/efficientdet/checkpoints/k0_smoothing_b4/best.pth'
+    checkpoint_path = '/opt/ml/detection/object-detection-level2-cv-17/efficientdet/checkpoints/k0_d4_lambda_lr01/best.pth'
     score_threshold = 0.1
     val_data_loader = DataLoader(
         val_dataset,  
@@ -47,7 +48,7 @@ def main(name):
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     print(device)
 
-    model = load_net(checkpoint_path, device, args.img_size, args.model)
+    model = load_net(checkpoint_path, device, args.img_size, args.version)
     
     outputs = valid_fn(val_data_loader, model, device)
     
@@ -56,14 +57,18 @@ def main(name):
     
     for i, output in enumerate(outputs):
         prediction_string = ''
-        image_info = coco.loadImgs(coco.getImgIds(imgIds=mask[i]))[0]
+        m = mask[i] if args.mode=='valid' else i
+        image_info = coco.loadImgs(coco.getImgIds(imgIds=m))[0]
         for box, score, label in zip(output['boxes'], output['scores'], output['labels']):
             if score > score_threshold:
-                prediction_string += str(int(label)-1) + ' ' + str(score) + ' ' + str(box[0]*2) + ' ' + str(
-                    box[1]*2) + ' ' + str(box[2]*2) + ' ' + str(box[3]*2) + ' '
+                prediction_string += str(int(label)-1) + ' ' + str(score) + ' ' + str(box[0]) + ' ' + str(
+                    box[1]) + ' ' + str(box[2]) + ' ' + str(box[3]) + ' '
         prediction_strings.append(prediction_string)
         file_names.append(image_info['file_name'])
-        
+    
+    
+    if not os.path.exists('csv'):
+        os.makedirs('csv')
     submission = pd.DataFrame()
     submission['PredictionString'] = prediction_strings
     submission['image_id'] = file_names
@@ -76,8 +81,9 @@ if __name__ == '__main__':
     parser.add_argument('--name', type=str, default='exp', help='enter csv name (default: exp)')
     parser.add_argument('--k_num', type=int, default=0, help='input fold number')
     parser.add_argument('--img_size', type=int, default=512, help='input image size for inference (default: 512)')
-    parser.add_argument('--model', type=int, default=4, help='model ver [0~7] (default: 5)')
+    parser.add_argument('--version', type=int, default=4, help='model ver [0~7] (default: 5)')
     parser.add_argument('--batch_size', type=int, default=4, help='input batch size for inference (default: 4)')
+    parser.add_argument('--mode', type = str, default='valid', help='select mode [vaild or test]')
     args = parser.parse_args()
     print(args)
     main(args.name)
