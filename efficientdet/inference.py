@@ -27,16 +27,16 @@ def valid_fn(val_data_loader, model, device):
     return outputs
 
 def main(name):
-    annotation = '/opt/ml/detection/dataset/test.json'
+    annotation = '/opt/ml/detection/dataset/train.json'
     data_dir = '/opt/ml/detection/dataset'
     
     coco = COCO(annotation)
     group = stratified_split(coco, args.k_num, True) if args.mode=='valid' else (0, 0)
     mask = group[0]
 
-    val_dataset = TestDataset(coco, data_dir, group, args.img_size)
-    checkpoint_path = '/opt/ml/detection/object-detection-level2-cv-17/efficientdet/checkpoints/k0_d4_lambda_lr01/best.pth'
-    score_threshold = 0.1
+    val_dataset = TestDataset(coco, data_dir, group, args.img_size, args.mode)
+    checkpoint_path = '/opt/ml/detection/object-detection-level2-cv-17/efficientdet/checkpoints/k0_d4_lambda_lr01/last.pth'
+    score_threshold = 0.05
     val_data_loader = DataLoader(
         val_dataset,  
         batch_size=2,
@@ -61,6 +61,9 @@ def main(name):
         image_info = coco.loadImgs(coco.getImgIds(imgIds=m))[0]
         for box, score, label in zip(output['boxes'], output['scores'], output['labels']):
             if score > score_threshold:
+                for i, b in enumerate(box):
+                    if b<0:
+                        box[i]=0
                 prediction_string += str(int(label)-1) + ' ' + str(score) + ' ' + str(box[0]) + ' ' + str(
                     box[1]) + ' ' + str(box[2]) + ' ' + str(box[3]) + ' '
         prediction_strings.append(prediction_string)
@@ -80,9 +83,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--name', type=str, default='exp', help='enter csv name (default: exp)')
     parser.add_argument('--k_num', type=int, default=0, help='input fold number')
-    parser.add_argument('--img_size', type=int, default=512, help='input image size for inference (default: 512)')
+    parser.add_argument('--img_size', type=int, default=1024, help='input image size for inference (default: 512)')
     parser.add_argument('--version', type=int, default=4, help='model ver [0~7] (default: 5)')
-    parser.add_argument('--batch_size', type=int, default=4, help='input batch size for inference (default: 4)')
+    parser.add_argument('--batch_size', type=int, default=2, help='input batch size for inference (default: 4)')
     parser.add_argument('--mode', type = str, default='valid', help='select mode [vaild or test]')
     args = parser.parse_args()
     print(args)
