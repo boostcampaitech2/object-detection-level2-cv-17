@@ -178,7 +178,7 @@ class BaseDetector(BaseModule, metaclass=ABCMeta):
 
         Args:
             losses (dict): Raw output of the network, which usually contain
-                losses and other necessary information.
+                losses and other necessary infomation.
 
         Returns:
             tuple[Tensor, dict]: (loss, log_vars), loss is the loss tensor \

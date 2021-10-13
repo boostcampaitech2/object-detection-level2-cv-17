@@ -1,4 +1,3 @@
-# Copyright (c) OpenMMLab. All rights reserved.
 import torch
 
 from mmdet.core.bbox.iou_calculators import bbox_overlaps
@@ -7,7 +6,7 @@ from .builder import MATCH_COST
 
 
 @MATCH_COST.register_module()
-class BBoxL1Cost:
+class BBoxL1Cost(object):
     """BBoxL1Cost.
 
      Args:
@@ -51,7 +50,7 @@ class BBoxL1Cost:
 
 
 @MATCH_COST.register_module()
-class FocalLossCost:
+class FocalLossCost(object):
     """FocalLossCost.
 
      Args:
@@ -100,7 +99,7 @@ class FocalLossCost:
 
 
 @MATCH_COST.register_module()
-class ClassificationCost:
+class ClassificationCost(object):
     """ClsSoftmaxCost.
 
      Args:
@@ -144,7 +143,7 @@ class ClassificationCost:
 
 
 @MATCH_COST.register_module()
-class IoUCost:
+class IoUCost(object):
     """IoUCost.
 
      Args:

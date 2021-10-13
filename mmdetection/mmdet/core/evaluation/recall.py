@@ -1,4 +1,3 @@
-# Copyright (c) OpenMMLab. All rights reserved.
 from collections.abc import Sequence
 
 import numpy as np
@@ -66,8 +65,7 @@ def eval_recalls(gts,
                  proposals,
                  proposal_nums=None,
                  iou_thrs=0.5,
-                 logger=None,
-                 use_legacy_coordinate=False):
+                 logger=None):
     """Calculate recalls.
 
     Args:
@@ -77,11 +75,6 @@ def eval_recalls(gts,
         iou_thrs (float | Sequence[float]): IoU thresholds. Default: 0.5.
         logger (logging.Logger | str | None): The way to print the recall
             summary. See `mmcv.utils.print_log()` for details. Default: None.
-        use_legacy_coordinate (bool): Whether use coordinate system
-            in mmdet v1.x. "1" was added to both height and width
-            which means w, h should be
-            computed as 'x2 - x1 + 1` and 'y2 - y1 + 1'. Default: False.
-
 
     Returns:
         ndarray: recalls of different ious and proposal nums
@@ -89,7 +82,9 @@ def eval_recalls(gts,
 
     img_num = len(gts)
     assert img_num == len(proposals)
+
     proposal_nums, iou_thrs = set_recall_param(proposal_nums, iou_thrs)
+
     all_ious = []
     for i in range(img_num):
         if proposals[i].ndim == 2 and proposals[i].shape[1] == 5:
@@ -102,10 +97,7 @@ def eval_recalls(gts,
         if gts[i] is None or gts[i].shape[0] == 0:
             ious = np.zeros((0, img_proposal.shape[0]), dtype=np.float32)
         else:
-            ious = bbox_overlaps(
-                gts[i],
-                img_proposal[:prop_num, :4],
-                use_legacy_coordinate=use_legacy_coordinate)
+            ious = bbox_overlaps(gts[i], img_proposal[:prop_num, :4])
         all_ious.append(ious)
     all_ious = np.array(all_ious)
     recalls = _recalls(all_ious, proposal_nums, iou_thrs)

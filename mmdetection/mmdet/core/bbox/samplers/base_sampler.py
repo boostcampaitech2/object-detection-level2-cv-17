@@ -1,4 +1,3 @@
-# Copyright (c) OpenMMLab. All rights reserved.
 from abc import ABCMeta, abstractmethod
 
 import torch

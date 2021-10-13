@@ -1,15 +1,36 @@
 _base_ = [
-    '../_base_/models/mask_rcnn_r50_fpn.py',
-    '../_base_/datasets/coco_instance.py',
+    '../_base_/models/cascade_rcnn_r50_fpn.py',
+    '../_base_/datasets/coco_detection.py',
     '../_base_/schedules/schedule_1x.py', '../_base_/default_runtime.py'
 ]
 
 pretrained = 'https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth'  # noqa
 
+# model = dict(
+#     type='MaskRCNN',
+#     backbone=dict(
+#         type='SwinTransformer',
+#         embed_dims=96,
+#         depths=[2, 2, 6, 2],
+#         num_heads=[3, 6, 12, 24],
+#         window_size=7,
+#         mlp_ratio=4,
+#         qkv_bias=True,
+#         qk_scale=None,
+#         drop_rate=0.,
+#         attn_drop_rate=0.,
+#         drop_path_rate=0.2,
+#         patch_norm=True,
+#         out_indices=(0, 1, 2, 3),
+#         with_cp=False,
+#         convert_weights=True,
+#         init_cfg=dict(type='Pretrained', checkpoint=pretrained)),
+#     neck=dict(in_channels=[96, 192, 384, 768]))
+
 model = dict(
-    type='MaskRCNN',
+
+    type='CascadeRCNN',
     backbone=dict(
-        _delete_=True,
         type='SwinTransformer',
         embed_dims=96,
         depths=[2, 2, 6, 2],
@@ -34,7 +55,7 @@ img_norm_cfg = dict(
 # augmentation strategy originates from DETR / Sparse RCNN
 train_pipeline = [
     dict(type='LoadImageFromFile'),
-    dict(type='LoadAnnotations', with_bbox=True, with_mask=True),
+    dict(type='LoadAnnotations', with_bbox=True),
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(
         type='AutoAugment',
@@ -71,21 +92,34 @@ train_pipeline = [
     dict(type='Normalize', **img_norm_cfg),
     dict(type='Pad', size_divisor=32),
     dict(type='DefaultFormatBundle'),
-    dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels', 'gt_masks']),
+    dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels']),
 ]
 data = dict(train=dict(pipeline=train_pipeline))
 
+# optimizer = dict(type='AdamW', lr=0.0001, weight_decay=0.005)
 optimizer = dict(
     _delete_=True,
     type='AdamW',
     lr=0.0001,
     betas=(0.9, 0.999),
-    weight_decay=0.05,
+    weight_decay=0.0005,
     paramwise_cfg=dict(
         custom_keys={
             'absolute_pos_embed': dict(decay_mult=0.),
             'relative_position_bias_table': dict(decay_mult=0.),
             'norm': dict(decay_mult=0.)
-        }))
-lr_config = dict(warmup_iters=1000, step=[27, 33])
-runner = dict(max_epochs=36)
+        }) 
+        )
+lr_config = dict(policy='step', warmup_iters=1000, step=[27, 33])
+runner = dict(type='EpochBasedRunner', max_epochs=36)
+
+fp16 = None
+optimizer_config = dict(
+    type="DistOptimizerHook",
+    update_interval=1,
+    grad_clip=None,
+    coalesce=True,
+    bucket_size_mb=-1,
+    use_fp16=False,
+)
+# optimizer_config = dict(grad_clip=None)

@@ -1,15 +1,12 @@
-# Copyright (c) OpenMMLab. All rights reserved.
 import torch.nn as nn
-import torch.nn.functional as F
 from mmcv.cnn import ConvModule
-from mmcv.runner import BaseModule
 
 from ..builder import BACKBONES
 from ..utils import ResLayer
 from .resnet import BasicBlock
 
 
-class HourglassModule(BaseModule):
+class HourglassModule(nn.Module):
     """Hourglass Module for HourglassNet backbone.
 
     Generate module recursively and use BasicBlock as the base unit.
@@ -21,20 +18,14 @@ class HourglassModule(BaseModule):
         stage_blocks (list[int]): Number of sub-modules stacked in current and
             follow-up HourglassModule.
         norm_cfg (dict): Dictionary to construct and config norm layer.
-        init_cfg (dict or list[dict], optional): Initialization config dict.
-            Default: None
-        upsample_cfg (dict, optional): Config dict for interpolate layer.
-            Default: `dict(mode='nearest')`
     """
 
     def __init__(self,
                  depth,
                  stage_channels,
                  stage_blocks,
-                 norm_cfg=dict(type='BN', requires_grad=True),
-                 init_cfg=None,
-                 upsample_cfg=dict(mode='nearest')):
-        super(HourglassModule, self).__init__(init_cfg)
+                 norm_cfg=dict(type='BN', requires_grad=True)):
+        super(HourglassModule, self).__init__()
 
         self.depth = depth
 
@@ -74,8 +65,7 @@ class HourglassModule(BaseModule):
             norm_cfg=norm_cfg,
             downsample_first=False)
 
-        self.up2 = F.interpolate
-        self.upsample_cfg = upsample_cfg
+        self.up2 = nn.Upsample(scale_factor=2)
 
     def forward(self, x):
         """Forward function."""
@@ -83,18 +73,12 @@ class HourglassModule(BaseModule):
         low1 = self.low1(x)
         low2 = self.low2(low1)
         low3 = self.low3(low2)
-        # Fixing `scale factor` (e.g. 2) is common for upsampling, but
-        # in some cases the spatial size is mismatched and error will arise.
-        if 'scale_factor' in self.upsample_cfg:
-            up2 = self.up2(low3, **self.upsample_cfg)
-        else:
-            shape = up1.shape[2:]
-            up2 = self.up2(low3, size=shape, **self.upsample_cfg)
+        up2 = self.up2(low3)
         return up1 + up2
 
 
 @BACKBONES.register_module()
-class HourglassNet(BaseModule):
+class HourglassNet(nn.Module):
     """HourglassNet backbone.
 
     Stacked Hourglass Networks for Human Pose Estimation.
@@ -111,9 +95,6 @@ class HourglassNet(BaseModule):
             HourglassModule.
         feat_channel (int): Feature channel of conv after a HourglassModule.
         norm_cfg (dict): Dictionary to construct and config norm layer.
-        pretrained (str, optional): model pretrained path. Default: None
-        init_cfg (dict or list[dict], optional): Initialization config dict.
-            Default: None
 
     Example:
         >>> from mmdet.models import HourglassNet
@@ -134,12 +115,8 @@ class HourglassNet(BaseModule):
                  stage_channels=(256, 256, 384, 384, 384, 512),
                  stage_blocks=(2, 2, 2, 2, 2, 4),
                  feat_channel=256,
-                 norm_cfg=dict(type='BN', requires_grad=True),
-                 pretrained=None,
-                 init_cfg=None):
-        assert init_cfg is None, 'To prevent abnormal initialization ' \
-                                 'behavior, init_cfg is not allowed to be set'
-        super(HourglassNet, self).__init__(init_cfg)
+                 norm_cfg=dict(type='BN', requires_grad=True)):
+        super(HourglassNet, self).__init__()
 
         self.num_stacks = num_stacks
         assert self.num_stacks >= 1
@@ -149,16 +126,8 @@ class HourglassNet(BaseModule):
         cur_channel = stage_channels[0]
 
         self.stem = nn.Sequential(
-            ConvModule(
-                3, cur_channel // 2, 7, padding=3, stride=2,
-                norm_cfg=norm_cfg),
-            ResLayer(
-                BasicBlock,
-                cur_channel // 2,
-                cur_channel,
-                1,
-                stride=2,
-                norm_cfg=norm_cfg))
+            ConvModule(3, 128, 7, padding=3, stride=2, norm_cfg=norm_cfg),
+            ResLayer(BasicBlock, 128, 256, 1, stride=2, norm_cfg=norm_cfg))
 
         self.hourglass_modules = nn.ModuleList([
             HourglassModule(downsample_times, stage_channels, stage_blocks)
@@ -192,10 +161,17 @@ class HourglassNet(BaseModule):
 
         self.relu = nn.ReLU(inplace=True)
 
-    def init_weights(self):
-        """Init module weights."""
+    def init_weights(self, pretrained=None):
+        """Init module weights.
+
+        We do nothing in this function because all modules we used
+        (ConvModule, BasicBlock and etc.) have default initialization, and
+        currently we don't provide pretrained model of HourglassNet.
+
+        Detector's __init__() will call backbone's init_weights() with
+        pretrained as input, so we keep this function.
+        """
         # Training Centripetal Model needs to reset parameters for Conv2d
-        super(HourglassNet, self).init_weights()
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 m.reset_parameters()

@@ -1,4 +1,3 @@
-# Copyright (c) OpenMMLab. All rights reserved.
 import logging
 
 from mmcv.utils import get_logger

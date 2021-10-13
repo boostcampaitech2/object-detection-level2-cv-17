@@ -1,4 +1,3 @@
-# Copyright (c) OpenMMLab. All rights reserved.
 from .base_bbox_coder import BaseBBoxCoder
 from .bucketing_bbox_coder import BucketingBBoxCoder
 from .delta_xywh_bbox_coder import DeltaXYWHBBoxCoder

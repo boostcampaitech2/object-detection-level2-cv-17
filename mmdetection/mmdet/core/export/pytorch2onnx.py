@@ -1,4 +1,3 @@
-# Copyright (c) OpenMMLab. All rights reserved.
 from functools import partial
 
 import mmcv
@@ -23,7 +22,7 @@ def generate_inputs_and_wrap_model(config_path,
     For example, the MMDet models' forward function has a parameter
     ``return_loss:bool``. As we want to set it as False while export API
     supports neither bool type or kwargs. So we have to replace the forward
-    method like ``model.forward = partial(model.forward, return_loss=False)``.
+    like: ``model.forward = partial(model.forward, return_loss=False)``
 
     Args:
         config_path (str): the OpenMMLab config for the model we want to
@@ -36,9 +35,9 @@ def generate_inputs_and_wrap_model(config_path,
             as there is no legal bbox.
 
     Returns:
-        tuple: (model, tensor_data) wrapped model which can be called by
-            ``model(*tensor_data)`` and a list of inputs which are used to
-            execute the model while exporting.
+        tuple: (model, tensor_data) wrapped model which can be called by \
+        model(*tensor_data) and a list of inputs which are used to execute \
+            the model while exporting.
     """
 
     model = build_model_from_cfg(
@@ -91,14 +90,7 @@ def build_model_from_cfg(config_path, checkpoint_path, cfg_options=None):
     # build the model
     cfg.model.train_cfg = None
     model = build_detector(cfg.model, test_cfg=cfg.get('test_cfg'))
-    checkpoint = load_checkpoint(model, checkpoint_path, map_location='cpu')
-    if 'CLASSES' in checkpoint.get('meta', {}):
-        model.CLASSES = checkpoint['meta']['CLASSES']
-    else:
-        from mmdet.datasets import DATASETS
-        dataset = DATASETS.get(cfg.data.test['type'])
-        assert (dataset is not None)
-        model.CLASSES = dataset.CLASSES
+    load_checkpoint(model, checkpoint_path, map_location='cpu')
     model.cpu().eval()
     return model
 
@@ -154,10 +146,9 @@ def preprocess_example_input(input_config):
         'ori_shape': (H, W, C),
         'pad_shape': (H, W, C),
         'filename': '<demo>.png',
-        'scale_factor': np.ones(4, dtype=np.float32),
+        'scale_factor': 1.0,
         'flip': False,
         'show_img': show_img,
-        'flip_direction': None
     }
 
     return one_img, one_meta

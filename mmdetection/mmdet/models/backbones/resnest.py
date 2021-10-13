@@ -1,4 +1,3 @@
-# Copyright (c) OpenMMLab. All rights reserved.
 import math
 
 import torch
@@ -6,7 +5,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as cp
 from mmcv.cnn import build_conv_layer, build_norm_layer
-from mmcv.runner import BaseModule
 
 from ..builder import BACKBONES
 from ..utils import ResLayer
@@ -38,7 +36,7 @@ class RSoftmax(nn.Module):
         return x
 
 
-class SplitAttentionConv2d(BaseModule):
+class SplitAttentionConv2d(nn.Module):
     """Split-Attention Conv2d in ResNeSt.
 
     Args:
@@ -57,8 +55,6 @@ class SplitAttentionConv2d(BaseModule):
             which means using conv2d.
         norm_cfg (dict): Config dict for normalization layer. Default: None.
         dcn (dict): Config dict for DCN. Default: None.
-        init_cfg (dict or list[dict], optional): Initialization config dict.
-            Default: None
     """
 
     def __init__(self,
@@ -73,9 +69,8 @@ class SplitAttentionConv2d(BaseModule):
                  reduction_factor=4,
                  conv_cfg=None,
                  norm_cfg=dict(type='BN'),
-                 dcn=None,
-                 init_cfg=None):
-        super(SplitAttentionConv2d, self).__init__(init_cfg)
+                 dcn=None):
+        super(SplitAttentionConv2d, self).__init__()
         inter_channels = max(in_channels * radix // reduction_factor, 32)
         self.radix = radix
         self.groups = groups

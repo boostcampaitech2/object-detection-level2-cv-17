@@ -58,8 +58,7 @@ class StandardRoIHead(BaseRoIHead, BBoxTestMixin, MaskTestMixin):
                       gt_bboxes,
                       gt_labels,
                       gt_bboxes_ignore=None,
-                      gt_masks=None,
-                      **kwargs):
+                      gt_masks=None):
         """
         Args:
             x (list[Tensor]): list of multi-level img features.

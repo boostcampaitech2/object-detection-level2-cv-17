@@ -197,7 +197,7 @@ class SingleStageInstanceSegmentor(BaseDetector):
                   shape (num_instances, h, w).
 
         Returns:
-            tuple: Formatted bbox and mask results.. It contains two items:
+            tuple: Formated bbox and mask results.. It contains two items:
 
                 - bbox_results (list[np.ndarray]): BBox results of
                   single image. The list corresponds to each class.
@@ -230,7 +230,7 @@ class SingleStageInstanceSegmentor(BaseDetector):
         labels = results.labels.detach().cpu().numpy()
 
         if 'bboxes' not in results:
-            # create dummy bbox results to store the scores
+            # creat dummy bbox results to store the scores
             results.bboxes = results.scores.new_zeros(len(results), 4)
 
         det_bboxes = torch.cat([results.bboxes, results.scores[:, None]],

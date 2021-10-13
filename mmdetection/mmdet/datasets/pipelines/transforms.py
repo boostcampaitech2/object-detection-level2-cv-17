@@ -334,14 +334,14 @@ class RandomFlip:
         ``direction``ly flipped with probability of ``flip_ratio`` .
         E.g., ``flip_ratio=0.5``, ``direction='horizontal'``,
         then image will be horizontally flipped with probability of 0.5.
-    - ``flip_ratio`` is float, ``direction`` is list of string: the image will
+    - ``flip_ratio`` is float, ``direction`` is list of string: the image wil
         be ``direction[i]``ly flipped with probability of
         ``flip_ratio/len(direction)``.
         E.g., ``flip_ratio=0.5``, ``direction=['horizontal', 'vertical']``,
         then image will be horizontally flipped with probability of 0.25,
         vertically with probability of 0.25.
     - ``flip_ratio`` is list of float, ``direction`` is list of string:
-        given ``len(flip_ratio) == len(direction)``, the image will
+        given ``len(flip_ratio) == len(direction)``, the image wil
         be ``direction[i]``ly flipped with probability of ``flip_ratio[i]``.
         E.g., ``flip_ratio=[0.3, 0.5]``, ``direction=['horizontal',
         'vertical']``, then image will be horizontally flipped with probability
@@ -2022,8 +2022,8 @@ class Mosaic:
             list: indexes.
         """
 
-        indexes = [random.randint(0, len(dataset)) for _ in range(3)]
-        return indexes
+        indexs = [random.randint(0, len(dataset)) for _ in range(3)]
+        return indexs
 
     def _mosaic_transform(self, results):
         """Mosaic transform function.

@@ -1,6 +1,3 @@
-# Copyright (c) OpenMMLab. All rights reserved.
-import warnings
-
 import numpy as np
 import torch.nn as nn
 from mmcv.cnn import build_conv_layer, build_norm_layer
@@ -43,9 +40,6 @@ class RegNet(ResNet):
             memory while slowing down the training speed.
         zero_init_residual (bool): whether to use zero init for last norm layer
             in resblocks to let them behave as identity.
-        pretrained (str, optional): model pretrained path. Default: None
-        init_cfg (dict or list[dict], optional): Initialization config dict.
-            Default: None
 
     Example:
         >>> from mmdet.models import RegNet
@@ -106,10 +100,8 @@ class RegNet(ResNet):
                  stage_with_dcn=(False, False, False, False),
                  plugins=None,
                  with_cp=False,
-                 zero_init_residual=True,
-                 pretrained=None,
-                 init_cfg=None):
-        super(ResNet, self).__init__(init_cfg)
+                 zero_init_residual=True):
+        super(ResNet, self).__init__()
 
         # Generate RegNet parameters first
         if isinstance(arch, str):
@@ -170,28 +162,6 @@ class RegNet(ResNet):
 
         self._make_stem_layer(in_channels, stem_channels)
 
-        block_init_cfg = None
-        assert not (init_cfg and pretrained), \
-            'init_cfg and pretrained cannot be specified at the same time'
-        if isinstance(pretrained, str):
-            warnings.warn('DeprecationWarning: pretrained is deprecated, '
-                          'please use "init_cfg" instead')
-            self.init_cfg = dict(type='Pretrained', checkpoint=pretrained)
-        elif pretrained is None:
-            if init_cfg is None:
-                self.init_cfg = [
-                    dict(type='Kaiming', layer='Conv2d'),
-                    dict(
-                        type='Constant',
-                        val=1,
-                        layer=['_BatchNorm', 'GroupNorm'])
-                ]
-                if self.zero_init_residual:
-                    block_init_cfg = dict(
-                        type='Constant', val=0, override=dict(name='norm3'))
-        else:
-            raise TypeError('pretrained must be a str or None')
-
         self.inplanes = stem_channels
         self.res_layers = []
         for i, num_blocks in enumerate(self.stage_blocks):
@@ -223,8 +193,7 @@ class RegNet(ResNet):
                 plugins=stage_plugins,
                 groups=stage_groups,
                 base_width=group_width,
-                base_channels=self.stage_widths[i],
-                init_cfg=block_init_cfg)
+                base_channels=self.stage_widths[i])
             self.inplanes = self.stage_widths[i]
             layer_name = f'layer{i + 1}'
             self.add_module(layer_name, res_layer)

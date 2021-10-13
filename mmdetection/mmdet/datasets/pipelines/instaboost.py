@@ -55,7 +55,7 @@ class InstaBoost:
 
     def _load_anns(self, results):
         labels = results['ann_info']['labels']
-        masks = results['ann_info']['masks']
+        # masks = results['ann_info']['masks']
         bboxes = results['ann_info']['bboxes']
         n = len(labels)
 
@@ -63,13 +63,13 @@ class InstaBoost:
         for i in range(n):
             label = labels[i]
             bbox = bboxes[i]
-            mask = masks[i]
+            # mask = masks[i]
             x1, y1, x2, y2 = bbox
             # assert (x2 - x1) >= 1 and (y2 - y1) >= 1
             bbox = [x1, y1, x2 - x1, y2 - y1]
             anns.append({
                 'category_id': label,
-                'segmentation': mask,
+                # 'segmentation': mask,
                 'bbox': bbox
             })
 
@@ -78,7 +78,7 @@ class InstaBoost:
     def _parse_anns(self, results, anns, img):
         gt_bboxes = []
         gt_labels = []
-        gt_masks_ann = []
+        # gt_masks_ann = []
         for ann in anns:
             x1, y1, w, h = ann['bbox']
             # TODO: more essential bug need to be fixed in instaboost
@@ -87,12 +87,12 @@ class InstaBoost:
             bbox = [x1, y1, x1 + w, y1 + h]
             gt_bboxes.append(bbox)
             gt_labels.append(ann['category_id'])
-            gt_masks_ann.append(ann['segmentation'])
+            # gt_masks_ann.append(ann['segmentation'])
         gt_bboxes = np.array(gt_bboxes, dtype=np.float32)
         gt_labels = np.array(gt_labels, dtype=np.int64)
         results['ann_info']['labels'] = gt_labels
         results['ann_info']['bboxes'] = gt_bboxes
-        results['ann_info']['masks'] = gt_masks_ann
+        # results['ann_info']['masks'] = gt_masks_ann
         results['img'] = img
         return results
 
