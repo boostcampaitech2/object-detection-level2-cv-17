@@ -1,0 +1,3 @@
+[submodule "StratifiedGroupKFold_coco"]
+	path = StratifiedGroupKFold_coco
+	url = https://github.com/JadeKim042386/StratifiedGroupKFold_coco.git
