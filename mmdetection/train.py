@@ -10,9 +10,6 @@ from mmdet.datasets import build_dataset
 from mmcv.runner import load_checkpoint
 from GPUtil import showUtilization as gpu_usage
 
-classes = ("General trash", "Paper", "Paper pack", "Metal", "Glass", 
-           "Plastic", "Styrofoam", "Plastic bag", "Battery", "Clothing")
-
 def empty_cache():
     """
     GPU cache를 비우는 함수
@@ -91,9 +88,6 @@ if __name__ == '__main__':
 
     # directory, file path
     parser.add_argument('--data_dir', type=str, nargs='?', default='/opt/ml/detection/dataset')
-    parser.add_argument('--train_file', type=str, nargs='?', default='train_split_0.json')
-    parser.add_argument('--valid_file', type=str, nargs='?', default='valid_split_0.json')
-    parser.add_argument('--test_file', type=str, nargs='?', default='test.json')
     
     parser.add_argument('--config_dir', type=str, nargs='?', default='swin')
     parser.add_argument('--config_file', type=str, nargs='?', default='cascade_rcnn_swin-t-p4-w7_fpn_ms_mosaic_1x_coco_val')
