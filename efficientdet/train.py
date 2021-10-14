@@ -37,7 +37,8 @@ def train_fn(data_dir, model_dir, args):
     seed_everything(args.seed)
     print(args)
     
-    k = random.randint(0,4) # k-fold 번호 (실행할 때마다 랜덤)
+    # k = random.randint(0,4) # k-fold 번호 (실행할 때마다 랜덤)
+    k = 0
 
     createFolder(model_dir)
     save_dir = os.path.join(model_dir, f'k{k}_{args.name}') # 실행할 때 val 번호(k)를 알아야 나중에 metric 할 수 있다.
@@ -194,13 +195,12 @@ if __name__ == '__main__':
     # Data and model checkpoints directories
     parser.add_argument('--seed', type=int, default=777, help='random seed (default: 777)')
     parser.add_argument('--wandb', type=str, default='t', help='use wandb or not')
-    parser.add_argument('--model', type=int, default=0, help='select which model (0~7)')
-    parser.add_argument('--epochs', type=int, default=14, help='number of epochs to train (default: 14)')
-    parser.add_argument('--batch_size', type=int, default=12, help='input batch size for training (default: 12)')
-    parser.add_argument('--img_size', type=int, default=512, help='input image size for training (default: 512)')
+    parser.add_argument('--epochs', type=int, default=50, help='number of epochs to train (default: 14)')
+    parser.add_argument('--batch_size', type=int, default=4, help='input batch size for training (default: 12)')
+    parser.add_argument('--img_size', type=int, default=1024, help='input image size for training (default: 512)')
     parser.add_argument('--optimizer', type=str, default='SGD', help='optimizer type (default: Adam)')
     parser.add_argument('--lr', type=float, default=0.005, help='learning rate (default: 1e-3)')
-    parser.add_argument('--box_weight', type=int, default=50, help='box weight (default: 50)')
+    parser.add_argument('--box_weight', type=int, default=1, help='box weight (default: 50)')
     parser.add_argument('--momentum', type=float, default=0.9, help='momentum for SGD (default: 0.9)')
     parser.add_argument('--weight_decay', type=float, default=0.0005, help='weight_decay for SGD (default: 0.0005)')
     parser.add_argument('--lr_decay_step', type=int, default=20, help='learning rate scheduler deacy step (default: 5)')

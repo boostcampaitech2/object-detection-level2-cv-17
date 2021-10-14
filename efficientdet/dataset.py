@@ -16,7 +16,9 @@ from albumentations.pytorch import ToTensorV2
 def get_train_transform(img_size):
     return A.Compose([
         A.Resize(img_size, img_size),
-        A.Flip(p=0.5),
+        A.HorizontalFlip(p=0.5),
+        A.ColorJitter (p=0.5),
+        A.Normalize(),
         ToTensorV2(p=1.0)
     ], bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']})
 
@@ -24,12 +26,15 @@ def get_train_transform(img_size):
 def get_valid_transform(img_size):
     return A.Compose([
         A.Resize(img_size, img_size),
+        A.ColorJitter (p=0.5),
+        A.Normalize(),
         ToTensorV2(p=1.0)
     ], bbox_params={'format': 'pascal_voc', 'label_fields': ['labels']})
 
 def get_test_transform(img_size):
     return A.Compose([
         A.Resize(img_size, img_size),
+        A.Normalize(),
         ToTensorV2(p=1.0)
     ])
 # CustomDataset class 선언
