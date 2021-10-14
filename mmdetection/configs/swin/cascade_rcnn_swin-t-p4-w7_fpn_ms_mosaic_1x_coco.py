@@ -1,8 +1,10 @@
 _base_ = [
     '../_base_/models/cascade_rcnn_r50_fpn_swin.py',
-    '../_base_/datasets/coco_detection.py',
+    # '../_base_/datasets/coco_detection.py',
     '../_base_/schedules/schedule_1x.py', '../_base_/default_runtime.py'
 ]
+dataset_type = 'CocoDataset'
+data_root = 'data/coco/'
 pretrained = 'https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth'  # noqa
 model = dict(
     type='CascadeRCNN',
@@ -29,8 +31,7 @@ img_norm_cfg = dict(
     mean=[0.48490459, 0.46038158, 0.43166834], std=[0.21190031, 0.20929289, 0.21483885], to_rgb=True)
 
 train_pipeline = [
-    dict(type='LoadImageFromFile'),
-    dict(type='LoadAnnotations', with_bbox=True),
+    dict(type='Mosaic', img_scale=(1024, 1024)),
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(
         type='AutoAugment',
@@ -70,16 +71,26 @@ train_pipeline = [
     dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels']),
 ]
 
+train_dataset = dict(
+    type='MultiImageMixDataset',
+    dataset=dict(
+        type=dataset_type,
+        ann_file=data_root + 'annotations/instances_train2017.json',
+        img_prefix=data_root + 'train2017/',
+        pipeline=[
+            dict(type='LoadImageFromFile'),
+            dict(type='LoadAnnotations', with_bbox=True)
+        ],
+        filter_empty_gt=False,
+        classes = None
+    ),
+    pipeline=train_pipeline)
+
 test_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(
         type='MultiScaleFlipAug',
-        img_scale=[(480, 1333), (512, 1333), (544, 1333), (576, 1333),
-                    (608, 1333), (640, 1333), (672, 1333), (704, 1333),
-                    (736, 1333), (768, 1333), (800, 1333)],
-        # img_scale=[(480, 480), (512, 512), (544, 544), (576, 576),
-        #             (608, 608), (640, 640), (672, 672), (704, 704),
-        #             (736, 736), (768, 768), (800, 800), (1333, 1333)],
+        img_scale=(1333, 800),
         flip=False,
         transforms=[
             dict(type='Resize', keep_ratio=True),
@@ -90,9 +101,23 @@ test_pipeline = [
             dict(type='Collect', keys=['img']),
         ])
 ]
+    
+data = dict(train=train_dataset)
 
-data = dict(train=dict(pipeline=train_pipeline),
-            test=dict(pipeline=test_pipeline))
+data = dict(
+    samples_per_gpu=4,
+    workers_per_gpu=4,
+    train=train_dataset,
+    val=dict(
+        type=dataset_type,
+        ann_file=data_root + 'annotations/instances_val2017.json',
+        img_prefix=data_root + 'val2017/',
+        pipeline=test_pipeline),
+    test=dict(
+        type=dataset_type,
+        ann_file=data_root + 'annotations/instances_val2017.json',
+        img_prefix=data_root + 'val2017/',
+        pipeline=test_pipeline))
 
 optimizer = dict(
     # _delete_=True,
@@ -108,3 +133,4 @@ optimizer = dict(
         }))
 lr_config = dict(warmup_iters=1000, step=[8, 11, 16, 22])
 runner = dict(max_epochs=24)
+evaluation = dict(interval=1, metric='bbox')

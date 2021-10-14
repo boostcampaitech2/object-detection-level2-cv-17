@@ -13,8 +13,7 @@ def get_net(checkpoint_path=None, box_weight=50, img_size=512, version=4):
     config.max_det_per_image = 100
     config.box_loss_weight = box_weight
     config.label_smoothing = 0.2
-    # config.lagacy_focal = True
-    # config.jit_loss = True
+    config.gamma = 1.5
     print(config)
 
     net = EfficientDet(config, pretrained_backbone=True)
@@ -36,7 +35,7 @@ def load_net(checkpoint_path, device, img_size, version):
     config.soft_nms = True
     config.max_det_per_image = 100
     config.label_smoothing = 0.2
-    
+    config.gamma = 1.5
     
     net = EfficientDet(config, pretrained_backbone=False)
     net.class_net = HeadNet(config, num_outputs=config.num_classes)

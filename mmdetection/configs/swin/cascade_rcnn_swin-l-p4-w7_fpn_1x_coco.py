@@ -3,15 +3,15 @@ _base_ = [
     '../_base_/datasets/coco_detection.py',
     '../_base_/schedules/schedule_1x.py', '../_base_/default_runtime.py'
 ]
-pretrained = 'https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth'  # noqa
+pretrained = 'https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_large_patch4_window12_384_22k.pth'  # noqa
 model = dict(
     type='CascadeRCNN',
     backbone=dict(
         type='SwinTransformer',
-        embed_dims=96,
-        depths=[2, 2, 6, 2],
-        num_heads=[3, 6, 12, 24],
-        window_size=7,
+        embed_dims=192,
+        depths=[2, 2, 18, 2],
+        num_heads=[6, 12, 24, 48],
+        window_size=12,
         mlp_ratio=4,
         qkv_bias=True,
         qk_scale=None,
@@ -23,7 +23,7 @@ model = dict(
         with_cp=False,
         convert_weights=True,
         init_cfg=dict(type='Pretrained', checkpoint=pretrained)),
-    neck=dict(in_channels=[96, 192, 384, 768]))
+    neck=dict(in_channels=[192, 384, 768, 1536]))
 
 img_norm_cfg = dict(
     mean=[0.48490459, 0.46038158, 0.43166834], std=[0.21190031, 0.20929289, 0.21483885], to_rgb=True)
@@ -77,9 +77,6 @@ test_pipeline = [
         img_scale=[(480, 1333), (512, 1333), (544, 1333), (576, 1333),
                     (608, 1333), (640, 1333), (672, 1333), (704, 1333),
                     (736, 1333), (768, 1333), (800, 1333)],
-        # img_scale=[(480, 480), (512, 512), (544, 544), (576, 576),
-        #             (608, 608), (640, 640), (672, 672), (704, 704),
-        #             (736, 736), (768, 768), (800, 800), (1333, 1333)],
         flip=False,
         transforms=[
             dict(type='Resize', keep_ratio=True),
@@ -91,8 +88,22 @@ test_pipeline = [
         ])
 ]
 
-data = dict(train=dict(pipeline=train_pipeline),
-            test=dict(pipeline=test_pipeline))
+dataset_type = 'CocoDataset'
+data = dict(
+    samples_per_gpu=8,
+    workers_per_gpu=4,
+    train=dict(
+        _delete_=True,
+        type='ClassBalancedDataset',
+        # times=5,
+        oversample_thr=0.5,
+        dataset=dict(
+            type=dataset_type,
+            ann_file='./annotations/instances_train2017.json',
+            img_prefix='./train2017/',
+            pipeline=train_pipeline)),
+    val=dict(pipeline=test_pipeline),
+    test=dict(pipeline=test_pipeline))
 
 optimizer = dict(
     # _delete_=True,
@@ -106,5 +117,17 @@ optimizer = dict(
             'relative_position_bias_table': dict(decay_mult=0.),
             'norm': dict(decay_mult=0.)
         }))
-lr_config = dict(warmup_iters=1000, step=[8, 11, 16, 22])
-runner = dict(max_epochs=24)
+
+log_config = dict(
+    interval=50,
+    hooks=[
+        dict(type='TextLoggerHook'),
+        dict(
+            type='WandbLoggerHook',
+            init_kwargs=dict(
+                project='Object_Detection',
+                name='jujoo'))
+    ])
+
+lr_config = dict(warmup_iters=1000, step=[8, 11])
+runner = dict(max_epochs=12)
