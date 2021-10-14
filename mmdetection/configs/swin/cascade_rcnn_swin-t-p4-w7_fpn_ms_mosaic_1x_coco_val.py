@@ -1,11 +1,17 @@
 _base_ = [
     '../_base_/models/cascade_rcnn_r50_fpn_swin.py',
-    # '../_base_/datasets/coco_detection.py',
     '../_base_/schedules/schedule_1x.py', '../_base_/default_runtime.py'
 ]
 dataset_type = 'CocoDataset'
-data_root = 'data/coco/'
+data_root = '/opt/ml/detection/dataset/'
+train_file =  'train_split_0.json'
+valid_file = 'valid_split_0.json'
+test_file = 'test.json'
 pretrained = 'https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_tiny_patch4_window7_224.pth'  # noqa
+
+classes = ("General trash", "Paper", "Paper pack", "Metal", "Glass", 
+           "Plastic", "Styrofoam", "Plastic bag", "Battery", "Clothing")
+
 model = dict(
     type='CascadeRCNN',
     backbone=dict(
@@ -76,14 +82,14 @@ train_dataset = dict(
     type='MultiImageMixDataset',
     dataset=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/instances_train2017.json',
-        img_prefix=data_root + 'train2017/',
+        ann_file='/opt/ml/detection/dataset/train_split_0.json',
+        img_prefix='/opt/ml/detection/dataset/',
         pipeline=[
             dict(type='LoadImageFromFile'),
             dict(type='LoadAnnotations', with_bbox=True)
         ],
         filter_empty_gt=False,
-        classes = None
+        classes = classes
     ),
     pipeline=train_pipeline)
 
@@ -105,9 +111,6 @@ test_pipeline = [
         img_scale=[(480, 1333), (512, 1333), (544, 1333), (576, 1333),
                     (608, 1333), (640, 1333), (672, 1333), (704, 1333),
                     (736, 1333), (768, 1333), (800, 1333)],
-        # img_scale=[(480, 480), (512, 512), (544, 544), (576, 576),
-        #             (608, 608), (640, 640), (672, 672), (704, 704),
-        #             (736, 736), (768, 768), (800, 800), (1333, 1333)],
         flip=False,
         transforms=[
             dict(type='Resize', keep_ratio=True),
@@ -118,8 +121,6 @@ test_pipeline = [
             dict(type='Collect', keys=['img']),
         ])
 ]
-    
-# data = dict(train=train_dataset)
 
 data = dict(
     samples_per_gpu=8,
@@ -127,13 +128,15 @@ data = dict(
     train=train_dataset,
     val=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/instances_val2017.json',
-        img_prefix=data_root + 'val2017/',
+        classes=classes,
+        ann_file=data_root + valid_file,
+        img_prefix=data_root,
         pipeline=test_pipeline),
     test=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/instances_val2017.json',
-        img_prefix=data_root + 'val2017/',
+        classes=classes,
+        ann_file=data_root + test_file,
+        img_prefix=data_root,
         pipeline=test_pipeline))
 
 optimizer = dict(

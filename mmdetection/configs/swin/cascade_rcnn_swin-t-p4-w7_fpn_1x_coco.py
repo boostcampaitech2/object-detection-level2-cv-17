@@ -26,7 +26,6 @@ model = dict(
     neck=dict(in_channels=[96, 192, 384, 768]))
 
 optimizer = dict(
-    # _delete_=True,
     type='AdamW',
     lr=0.0001,
     betas=(0.9, 0.999),

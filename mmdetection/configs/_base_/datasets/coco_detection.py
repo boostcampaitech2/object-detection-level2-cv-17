@@ -1,6 +1,13 @@
 # dataset settings
 dataset_type = 'CocoDataset'
-data_root = 'data/coco/'
+data_root = '/opt/ml/detection/dataset/'
+train_file =  'train_split_0.json'
+valid_file = 'valid_split_0.json'
+test_file = 'test.json'
+
+classes = ("General trash", "Paper", "Paper pack", "Metal", "Glass", 
+           "Plastic", "Styrofoam", "Plastic bag", "Battery", "Clothing")
+
 img_norm_cfg = dict(
     mean=[0.48490459, 0.46038158, 0.43166834], std=[0.21190031, 0.20929289, 0.21483885], to_rgb=True)
 train_pipeline = [
@@ -33,17 +40,20 @@ data = dict(
     workers_per_gpu=2,
     train=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/instances_train2017.json',
-        img_prefix=data_root + 'train2017/',
+        classes=classes,
+        ann_file=data_root + train_file,
+        img_prefix=data_root,
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/instances_val2017.json',
-        img_prefix=data_root + 'val2017/',
+        classes=classes,
+        ann_file=data_root + valid_file,
+        img_prefix=data_root,
         pipeline=test_pipeline),
     test=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/instances_val2017.json',
-        img_prefix=data_root + 'val2017/',
+        classes=classes,
+        ann_file=data_root + test_file,
+        img_prefix=data_root,
         pipeline=test_pipeline))
 evaluation = dict(interval=1, metric='bbox')

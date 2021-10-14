@@ -3,6 +3,8 @@ _base_ = [
     '../_base_/datasets/coco_detection.py',
     '../_base_/schedules/schedule_1x.py', '../_base_/default_runtime.py'
 ]
+classes = ("General trash", "Paper", "Paper pack", "Metal", "Glass", 
+           "Plastic", "Styrofoam", "Plastic bag", "Battery", "Clothing")
 pretrained = 'https://github.com/SwinTransformer/storage/releases/download/v1.0.0/swin_large_patch4_window12_384_22k.pth'  # noqa
 model = dict(
     type='HybridTaskCascade',
@@ -43,27 +45,27 @@ train_pipeline = [
                 multiscale_mode='value',
                 keep_ratio=True)
         ],
-                  [
-                      dict(
-                          type='Resize',
-                          img_scale=[(400, 1333), (500, 1333), (600, 1333)],
-                          multiscale_mode='value',
-                          keep_ratio=True),
-                      dict(
-                          type='RandomCrop',
-                          crop_type='absolute_range',
-                          crop_size=(384, 600),
-                          allow_negative_crop=True),
-                      dict(
-                          type='Resize',
-                          img_scale=[(480, 1333), (512, 1333), (544, 1333),
-                                     (576, 1333), (608, 1333), (640, 1333),
-                                     (672, 1333), (704, 1333), (736, 1333),
-                                     (768, 1333), (800, 1333)],
-                          multiscale_mode='value',
-                          override=True,
-                          keep_ratio=True)
-                  ]]),
+        [
+            dict(
+                type='Resize',
+                img_scale=[(400, 1333), (500, 1333), (600, 1333)],
+                multiscale_mode='value',
+                keep_ratio=True),
+            dict(
+                type='RandomCrop',
+                crop_type='absolute_range',
+                crop_size=(384, 600),
+                allow_negative_crop=True),
+            dict(
+                type='Resize',
+                img_scale=[(480, 1333), (512, 1333), (544, 1333),
+                            (576, 1333), (608, 1333), (640, 1333),
+                            (672, 1333), (704, 1333), (736, 1333),
+                            (768, 1333), (800, 1333)],
+                multiscale_mode='value',
+                override=True,
+                keep_ratio=True)
+        ]]),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='Pad', size_divisor=32),
     dict(type='DefaultFormatBundle'),
@@ -93,20 +95,18 @@ data = dict(
     samples_per_gpu=8,
     workers_per_gpu=4,
     train=dict(
-        _delete_=True,
         type='ClassBalancedDataset',
-        # times=5,
         oversample_thr=0.5,
         dataset=dict(
             type=dataset_type,
-            ann_file='./annotations/instances_train2017.json',
-            img_prefix='./train2017/',
+            classes = classes,
+            ann_file='/opt/ml/detection/dataset/train_split_0.json',
+            img_prefix='/opt/ml/detection/dataset/',
             pipeline=train_pipeline)),
     val=dict(pipeline=test_pipeline),
     test=dict(pipeline=test_pipeline))
 
 optimizer = dict(
-    # _delete_=True,
     type='AdamW',
     lr=0.0001,
     betas=(0.9, 0.999),

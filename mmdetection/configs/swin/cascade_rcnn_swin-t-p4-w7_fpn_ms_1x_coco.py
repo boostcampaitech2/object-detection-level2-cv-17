@@ -77,9 +77,6 @@ test_pipeline = [
         img_scale=[(480, 1333), (512, 1333), (544, 1333), (576, 1333),
                     (608, 1333), (640, 1333), (672, 1333), (704, 1333),
                     (736, 1333), (768, 1333), (800, 1333)],
-        # img_scale=[(480, 480), (512, 512), (544, 544), (576, 576),
-        #             (608, 608), (640, 640), (672, 672), (704, 704),
-        #             (736, 736), (768, 768), (800, 800), (1333, 1333)],
         flip=False,
         transforms=[
             dict(type='Resize', keep_ratio=True),
@@ -95,7 +92,6 @@ data = dict(train=dict(pipeline=train_pipeline),
             test=dict(pipeline=test_pipeline))
 
 optimizer = dict(
-    # _delete_=True,
     type='AdamW',
     lr=0.0001,
     betas=(0.9, 0.999),
