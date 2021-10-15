@@ -49,6 +49,7 @@ coco format으로 images와 annotations 정보를 담고 있습니다.
 ## Getting Started
 
 - MMDetection : [Usage](./mmdetection/README.md)
+- Detectron2 : [Documentation](https://detectron2.readthedocs.io/en/latest/index.html)
 
 ## Code Structure
 ```
